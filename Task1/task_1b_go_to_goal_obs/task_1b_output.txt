@@ -1,0 +1,2 @@
+1, a, north
+2, a, east

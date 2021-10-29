@@ -50,17 +50,10 @@ defmodule ToyRobot do
   @doc """
   Provide START position to the robot as given location of (x, y, facing) and place it.
   """
-  def start(x, y, _facing) when x < 1 or y < :a or x > @table_top_x or y > @table_top_y do
-    {:failure, "Invalid position"}
-  end
-
-  def start(_x, _y, facing)
-  when facing not in [:north, :east, :south, :west]
-  do
-    {:failure, "Invalid facing direction"}
-  end
   def start(x, y, facing) do
-    {:ok, %ToyRobot.Position{x: x, y: y, facing: facing}}
+    ###########################
+    ## complete this funcion ##
+    ###########################
   end
 
   def stop(_robot, goal_x, goal_y, _cli_proc_name) when goal_x < 1 or goal_y < :a or goal_x > @table_top_x or goal_y > @table_top_y do
@@ -73,45 +66,10 @@ defmodule ToyRobot do
   Spawn a process and register it with name ':client_toyrobot' which is used by CLI Server to send an
   indication for the presence of obstacle ahead of robot's current position and facing.
   """
-  def stop(%ToyRobot.Position{x: x, y: y, facing: _facing} = robot, goal_x, goal_y, cli_proc_name) when x == goal_x and y == goal_y do
-    send_robot_status(robot, cli_proc_name)
-    {:ok, robot}
-  end
-  def stop(%ToyRobot.Position{x: x, y: y, facing: facing} = robot, goal_x, goal_y, cli_proc_name) do
-    self_pid = self()
-    pid = spawn_link(fn -> loop(self_pid) end)
-    Process.register(pid, :client_toyrobot)
-
-    is_obstacle = send_robot_status(robot, cli_proc_name)
-    # IO.puts(is_obstacle)
-    is_obstacle = right(robot) |> move |> send_robot_status(cli_proc_name)
-    # IO.puts(is_obstacle)
-    # x_direction = if goal_x > x do :east else :west end
-    # y_direction = if goal_y > y do :north else :south end
-
-    # if !is_obstacle do
-    # IO.puts("No matching clause: x:#{x} y:#{y} F:#{facing} X-dir:#{x_direction} Y-dir:#{y_direction} Goal_X:#{goal_x} Goal_Y:#{goal_y}")
-    # end
-    # if is_obstacle do
-    # IO.puts("True value")
-    # end
-    # robot = cond do
-    #   x != goal_x and facing != x_direction -> right(robot)
-    #   x != goal_x and facing == x_direction -> move(robot)
-    #   y != goal_y and facing != y_direction -> left(robot)
-    #   y != goal_y and facing == y_direction -> move(robot)
-    #   true -> IO.puts("No matching clause: x:#{x} y:#{y} F:#{facing} X-dir:#{x_direction} Y-dir:#{y_direction} Goal_X:#{goal_x} Goal_Y:#{goal_y}")
-    # end
-    # stop(robot, goal_x, goal_y, cli_proc_name)
-  end
-
-  def loop(pid) do
-    receive do
-      {:obstacle_presence, is_obs_ahead} ->
-        # IO.puts("Sending obstacle presence")
-        send(pid, {:obstacle_presence, is_obs_ahead})
-        loop(pid)
-    end
+  def stop(robot, goal_x, goal_y, cli_proc_name) do
+    ###########################
+    ## complete this funcion ##
+    ###########################
   end
 
   @doc """
@@ -132,9 +90,7 @@ defmodule ToyRobot do
   """
   def listen_from_server() do
     receive do
-      {:obstacle_presence, is_obs_ahead} ->
-        # IO.puts(is_obs_ahead)
-        is_obs_ahead
+      {:obstacle_presence, is_obs_ahead} -> is_obs_ahead
     end
   end
 
