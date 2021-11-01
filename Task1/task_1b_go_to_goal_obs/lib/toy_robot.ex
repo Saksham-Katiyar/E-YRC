@@ -79,39 +79,31 @@ defmodule ToyRobot do
     self_pid=self()
     pid=spawn(fn -> loop(self_pid) end)
     Process.register(self_pid, :client_toyrobot)
-    find(robot, goal_x, goal_y, cli_proc_name, 0)
+    robo_map=[]
+    obs_map=[]
+    index=0
+    {:ok, obs_map}=make_obsmap(obs_map,index)
+    {:ok, robo_map}=make_robomap(goal_x,goal_y,robo_map,index)
+
   end
 
-  def find(%ToyRobot.Position{x: x, y: y, facing: _facing} = robot, goal_x, goal_y, cli_proc_name, t) when x == goal_x and y == goal_y do
-    send_robot_status(robot, cli_proc_name)
-    {:ok, robot}
+  def make_obsmap(obs_map, index) when index==40 do
+    {:ok, obs_map}
+  end
+  def make_obsmap(obs_map, index) do
+    obs_map=List.insert_at(obs_map,index,0)
+    make_obsmap(obs_map,index+1)
+  end
+  def make_robomap(goal_x, goal_y,robo_map,index) when index==25 do
+    {:ok, robo_map}
   end
 
-  def find(%ToyRobot.Position{x: x, y: y, facing: facing} = robot, goal_x, goal_y, cli_proc_name, t) do
-    x_direction = if goal_x > x do :east else :west end
-    y_direction = if goal_y > y do :north else :south end
-
-    obs = send_robot_status(robot, cli_proc_name)
-
-    t= cond do
-      obs==true and t==1 -> 0
-      obs==true and t==0 -> 1
-      true -> t
-    end
-
-    robot = cond do
-      t==0 and y != goal_y and facing != y_direction -> left(robot)
-      t==0 and y != goal_y and facing == y_direction -> move(robot)
-      t==0 and x != goal_x and facing != x_direction -> right(robot)
-      t==0 and x != goal_x and facing == x_direction -> move(robot)
-      t==1 and x != goal_x and facing != x_direction -> right(robot)
-      t==1 and x != goal_x and facing == x_direction -> move(robot)
-      t==1 and y != goal_y and facing != y_direction -> left(robot)
-      t==1 and y != goal_y and facing == y_direction -> move(robot)
-      true -> IO.puts("No matching clause: x:#{x} y:#{y} F:#{facing} X-dir:#{x_direction} Y-dir:#{y_direction} Goal_X:#{goal_x} Goal_Y:#{goal_y}")
-    end
-
-    find(robot, goal_x, goal_y, cli_proc_name, t)
+  def make_robomap(goal_x, goal_y,robo_map,index) do
+    x=rem(index,5)+1
+    y=trunc(index/5)+1
+    value=abs(goal_x-x)+abs(@robot_map_y_atom_to_num[goal_y]-y)
+    robo_map=List.insert_at(robo_map,index,value)
+    make_robomap(goal_x,goal_y,robo_map,index+1)
   end
 
   def loop(pid) do
