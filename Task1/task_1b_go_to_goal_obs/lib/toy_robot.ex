@@ -91,11 +91,11 @@ defmodule ToyRobot do
 
     robot = if is_obstacle_0 do
               robot = left(robot)
-              if !send_robot_status(robot, cli_proc_name) do
+              if !send_robot_status(robot, cli_proc_name) and move_possible(robot) do
                 robot = move(robot)
                 _ = send_robot_status(robot, cli_proc_name)
                 robot = right(robot)
-                if !send_robot_status(robot, cli_proc_name) do
+                if !send_robot_status(robot, cli_proc_name) and move_possible(robot) do
                   move(robot)
                 else
                   robot
@@ -115,6 +115,16 @@ defmodule ToyRobot do
               end
             end
     traverse(robot, goal_x, goal_y, cli_proc_name)
+  end
+
+  defp move_possible(%ToyRobot.Position{x: x, y: y, facing: facing} = _robot) do
+    case {x, y, facing} do
+      {_x, :e, :north} -> false
+      {_x, :a, :south} -> false
+      {1, _y, :west} -> false
+      {5, _y, :east} -> false
+      _ -> true
+    end
   end
 
   def loop(pid) do
