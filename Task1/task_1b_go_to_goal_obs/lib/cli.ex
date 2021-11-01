@@ -138,10 +138,8 @@ defmodule ToyRobot.CLI do
   Write the action taken with position of robot to a text (.txt) file.
   """
   def listen_from_client(state, list_obs, out_file) do
-    # IO.puts("Stuck")
     receive do
       {:toyrobot_status, robot_x, robot_y, robot_face} ->
-        # IO.puts("reached CLI server")
         IO.puts("Received by CLI Server: #{robot_x}, #{robot_y}, #{robot_face}")
         IO.binwrite(out_file, "#{robot_x}, #{robot_y}, #{robot_face}\n")
         send(:client_toyrobot, {:obstacle_presence, Enum.member?(list_obs, {robot_x, robot_y, robot_face})})
