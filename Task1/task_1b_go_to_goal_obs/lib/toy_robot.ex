@@ -74,7 +74,7 @@ defmodule ToyRobot do
   Spawn a process and register it with name ':client_toyrobot' which is used by CLI Server to send an
   indication for the presence of obstacle ahead of robot's current position and facing.
   """
-
+  @directions_to_nums %{:north => 0, :south => 2, :east=> 1, :west=> 3}
   def stop(%ToyRobot.Position{x: x, y: y, facing: facing} = robot, goal_x, goal_y, cli_proc_name) do
     self_pid=self()
     pid=spawn(fn -> loop(self_pid) end)
@@ -87,11 +87,43 @@ defmodule ToyRobot do
     traverse(robot,robo_map, obs_map, goal_x, goal_y, cli_proc_name)
   end
   def traverse(%ToyRobot.Position{x: x, y: y, facing: facing} = robot, robo_map, obs_map, goal_x, goal_y, cli_proc_name) when x==goal_x and y==goal_y do
+    is_obstacle=send_robot_status(robot, cli_proc_name)
     {:ok, robot}
   end
   def traverse(%ToyRobot.Position{x: x, y: y, facing: facing} = robot, robo_map, obs_map, goal_x, goal_y, cli_proc_name) do
+    is_obstacle=send_robot_status(robot, cli_proc_name)
+    index=@robot_map_y_atom_to_num[y]*5+x-6
+    {:ok, neighbour_dists}=find_neighbour_dists(robo_map,index)
+    IO.puts Enum.at(neighbour_dists,0)
+    IO.puts Enum.at(neighbour_dists,1)
+    IO.puts Enum.at(neighbour_dists,2)
+    IO.puts Enum.at(neighbour_dists,3)
 
-    traverse(robot,robo_map, obs_map, goal_x, goal_y, cli_proc_name)
+    #traverse(robot,robo_map, obs_map, goal_x, goal_y, cli_proc_name)
+  end
+  def find_neighbour_dists(robo_map, index) do
+    neighbour_dists=[]
+    neighbour_dists=if index<20 do
+                      List.insert_at(neighbour_dists, 0, Enum.at(robo_map,index+5))
+                    else
+                      List.insert_at(neighbour_dists, 0, -1)
+                    end
+    neighbour_dists=if rem(index+1,5)!=0 do
+                      List.insert_at(neighbour_dists, 1, Enum.at(robo_map,index+1))
+                    else
+                      List.insert_at(neighbour_dists, 1, -1)
+                    end
+    neighbour_dists=if index>4 do
+                      List.insert_at(neighbour_dists, 2, Enum.at(robo_map,index-5))
+                    else
+                      List.insert_at(neighbour_dists, 2, -1)
+                    end
+    neighbour_dists=if rem(index,5)!=0 do
+                      List.insert_at(neighbour_dists, 3, Enum.at(robo_map,index-1))
+                    else
+                      List.insert_at(neighbour_dists, 3, -1)
+                    end
+    {:ok, neighbour_dists}
   end
   def make_obsmap(obs_map, index) when index==40 do
     {:ok, obs_map}
