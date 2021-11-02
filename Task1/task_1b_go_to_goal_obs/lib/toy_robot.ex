@@ -84,9 +84,15 @@ defmodule ToyRobot do
     index=0
     {:ok, obs_map}=make_obsmap(obs_map,index)
     {:ok, robo_map}=make_robomap(goal_x,goal_y,robo_map,index)
-
+    traverse(robot,robo_map, obs_map, goal_x, goal_y, cli_proc_name)
   end
+  def traverse(%ToyRobot.Position{x: x, y: y, facing: facing} = robot, robo_map, obs_map, goal_x, goal_y, cli_proc_name) when x==goal_x and y==goal_y do
+    {:ok, robot}
+  end
+  def traverse(%ToyRobot.Position{x: x, y: y, facing: facing} = robot, robo_map, obs_map, goal_x, goal_y, cli_proc_name) do
 
+    traverse(robot,robo_map, obs_map, goal_x, goal_y, cli_proc_name)
+  end
   def make_obsmap(obs_map, index) when index==40 do
     {:ok, obs_map}
   end
