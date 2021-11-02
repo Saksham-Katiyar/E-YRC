@@ -75,9 +75,9 @@ defmodule ToyRobot do
   """
 
   def stop(%ToyRobot.Position{x: _x, y: _y, facing: _facing} = robot, goal_x, goal_y, cli_proc_name) do
-    self_pid = self()
-    pid = spawn_link(fn -> loop(self_pid) end)
-    Process.register(pid, :client_toyrobot)
+    # self_pid = self()
+    # pid = spawn_link(fn -> loop(self_pid) end)
+    Process.register(self(), :client_toyrobot)
     traverse(robot, goal_x, goal_y, cli_proc_name)
   end
 
@@ -89,7 +89,7 @@ defmodule ToyRobot do
   defp traverse(%ToyRobot.Position{x: x, y: y, facing: facing} = robot, goal_x, goal_y, cli_proc_name) do
     is_obstacle_0 = send_robot_status(robot, cli_proc_name)
 
-    robot = if is_obstacle_0 do
+    robot = if is_obstacle_0 or !move_possible(robot) do
               robot = left(robot)
               if !send_robot_status(robot, cli_proc_name) and move_possible(robot) do
                 robot = move(robot)
@@ -127,13 +127,13 @@ defmodule ToyRobot do
     end
   end
 
-  def loop(pid) do
-    receive do
-      {:obstacle_presence, is_obs_ahead} ->
-        send(pid, {:obstacle_presence, is_obs_ahead})
-        loop(pid)
-    end
-  end
+  # def loop(pid) do
+  #   receive do
+  #     {:obstacle_presence, is_obs_ahead} ->
+  #       send(pid, {:obstacle_presence, is_obs_ahead})
+  #       loop(pid)
+  #   end
+  # end
 
   @doc """
   Send Toy Robot's current status i.e. location (x, y) and facing
