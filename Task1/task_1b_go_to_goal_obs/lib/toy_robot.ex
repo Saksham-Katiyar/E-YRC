@@ -91,13 +91,10 @@ defmodule ToyRobot do
     {:ok, robot}
   end
   def traverse(%ToyRobot.Position{x: x, y: y, facing: facing} = robot, robo_map, obs_map, goal_x, goal_y, cli_proc_name) do
-    is_obstacle=send_robot_status(robot, cli_proc_name)
     index=@robot_map_y_atom_to_num[y]*5+x-6
     {:ok, neighbour_dists}=find_neighbour_dists(robo_map,index)
-    IO.puts Enum.at(neighbour_dists,0)
-    IO.puts Enum.at(neighbour_dists,1)
-    IO.puts Enum.at(neighbour_dists,2)
-    IO.puts Enum.at(neighbour_dists,3)
+    is_obstacle=send_robot_status(robot, cli_proc_name)
+
 
     #traverse(robot,robo_map, obs_map, goal_x, goal_y, cli_proc_name)
   end
