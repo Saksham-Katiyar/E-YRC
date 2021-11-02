@@ -94,7 +94,7 @@ defmodule ToyRobot do
     index=@robot_map_y_atom_to_num[y]*5+x-6
     {:ok, neighbour_dists}=find_neighbour_dists(robo_map,index)
     is_obstacle=send_robot_status(robot, cli_proc_name)
-
+    obs_map=update_obs_map(obs_map,is_obstacle)
 
     #traverse(robot,robo_map, obs_map, goal_x, goal_y, cli_proc_name)
   end
