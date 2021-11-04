@@ -84,14 +84,15 @@ defmodule ToyRobot do
     obs_map=[]
     index=0
     {:ok, obs_map}=make_obsmap(obs_map,index)
+    is_obstacle=send_robot_status(robot,cli_proc_name)
+    obs_map=update_obs_map(robot, obs_map,is_obstacle)
     traverse(robot,obs_map, goal_x, goal_y, cli_proc_name)
   end
   def traverse(%ToyRobot.Position{x: x, y: y, facing: _facing} = robot, _obs_map, goal_x, goal_y, cli_proc_name) when x==goal_x and y==goal_y do
     {:ok, robot}
   end
   def traverse(%ToyRobot.Position{x: x, y: y, facing: _facing} = robot, obs_map, goal_x, goal_y, cli_proc_name) do
-    is_obstacle=send_robot_status(robot,cli_proc_name)
-    obs_map=update_obs_map(robot, obs_map,is_obstacle)
+
     goal_index=@robot_map_y_atom_to_num[goal_y]*5+goal_x-6
     position_index=@robot_map_y_atom_to_num[y]*5+x-6
     shortest_path=[position_index]
@@ -105,7 +106,7 @@ defmodule ToyRobot do
     # IO.puts Enum.at(shortest_path,4)
     # IO.puts Enum.at(shortest_path,5)
     # IO.puts Enum.at(shortest_path,6)
-    {robot,obs_map}=move_on_shortest_path(robot,shortest_path, index, cli_proc_name, obs_map, is_obstacle)
+    {robot,obs_map}=move_on_shortest_path(robot,shortest_path, index, cli_proc_name, obs_map)
     traverse(robot,obs_map, goal_x, goal_y, cli_proc_name)
   end
   def find_shortest_path(shortest_path,index,li) when index==0 do
@@ -156,13 +157,13 @@ defmodule ToyRobot do
                       end
     neighbour_indexes
   end
-  def move_on_shortest_path(%ToyRobot.Position{x: _x, y: _y, facing: _facing} = robot, shortest_path, index, _cli_proc_name, obs_map,_is_obstacle) when index==length(shortest_path)-1 do
+  def move_on_shortest_path(%ToyRobot.Position{x: _x, y: _y, facing: _facing} = robot, shortest_path, index, _cli_proc_name, obs_map) when index==length(shortest_path)-1 do
     {robot,obs_map}
   end
-  def move_on_shortest_path(%ToyRobot.Position{x: _x, y: _y, facing: _facing} = robot, shortest_path, index, cli_proc_name, obs_map, is_obstacle) do
+  def move_on_shortest_path(%ToyRobot.Position{x: _x, y: _y, facing: _facing} = robot, shortest_path, index, cli_proc_name, obs_map) do
     {robot,obs_map,is_obstacle}=move_to_next_index(robot,Enum.at(shortest_path,index),Enum.at(shortest_path,index+1),cli_proc_name,obs_map)
     {robot,obs_map}=if is_obstacle==false do
-                      move_on_shortest_path(robot,shortest_path, index+1, cli_proc_name, obs_map,is_obstacle)
+                      move_on_shortest_path(robot,shortest_path, index+1, cli_proc_name, obs_map)
                     else
                       {robot,obs_map}
                     end
