@@ -74,7 +74,7 @@ defmodule ToyRobot do
   Spawn a process and register it with name ':client_toyrobot' which is used by CLI Server to send an
   indication for the presence of obstacle ahead of robot's current position and facing.
   """
-  @directions_to_the_opposite %{:north => 0, :south => 2, :east=> 1, :west=> 3}
+  @directions_to_the_opposite %{:north => :south, :south => :north, :east=> :west, :west=> :east}
   @directions_to_the_right %{north: :east, east: :south, south: :west, west: :north}
   @directions_to_the_left Enum.map(@directions_to_the_right, fn {from, to} -> {to, from} end)
   def stop(%ToyRobot.Position{x: _x, y: _y, facing: _facing} = robot, goal_x, goal_y, cli_proc_name) do
