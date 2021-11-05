@@ -98,13 +98,6 @@ defmodule ToyRobot do
     index=0
     goal_position_index=Enum.at(shortest_path, index)
     shortest_path=make_shortest_path(shortest_path,goal_index,index,obs_map,goal_position_index)
-    # IO.puts Enum.at(shortest_path,0)
-    # IO.puts Enum.at(shortest_path,1)
-    # IO.puts Enum.at(shortest_path,2)
-    # IO.puts Enum.at(shortest_path,3)
-    # IO.puts Enum.at(shortest_path,4)
-    # IO.puts Enum.at(shortest_path,5)
-    # IO.puts Enum.at(shortest_path,6)
     {robot,obs_map}=move_on_shortest_path(robot,shortest_path, index, cli_proc_name, obs_map)
     traverse(robot,obs_map, goal_x, goal_y, cli_proc_name)
   end
