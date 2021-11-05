@@ -92,7 +92,6 @@ defmodule ToyRobot do
     {:ok, robot}
   end
   def traverse(%ToyRobot.Position{x: x, y: y, facing: _facing} = robot, obs_map, goal_x, goal_y, cli_proc_name) do
-
     goal_index=@robot_map_y_atom_to_num[goal_y]*5+goal_x-6
     position_index=@robot_map_y_atom_to_num[y]*5+x-6
     shortest_path=[position_index]
