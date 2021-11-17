@@ -1,2 +1,1 @@
-3, a, north | 3, b, south
-3, b, north | 3, c, south
+1, e, east | 2, e, west
