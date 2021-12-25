@@ -1,3 +1,14 @@
-2, a, east | 3, a, west
-1, b, north | 1, c, south
-2, d, east | 3, d, west
+1, a, east | 2, a, west
+1, b, east | 2, b, west
+1, c, east | 2, c, west
+1, d, east | 2, d, west
+2, d, north | 2, e, south
+3, d, north | 3, e, south
+4, d, north | 4, e, south
+2, a, north | 2, b, south
+2, c, north | 2, d, south
+4, b, north | 4, c, south
+2, b, east | 3, b, west
+4, b, east | 5, b, west
+4, a, east | 5, a, west
+4, c, east | 5, c, west
