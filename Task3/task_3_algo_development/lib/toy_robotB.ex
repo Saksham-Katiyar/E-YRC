@@ -55,6 +55,7 @@ defmodule CLI.ToyRobotB do
     ###########################
     ## complete this funcion ##
     ###########################
+    place(x, y, facing)
   end
 
   def stop(_robot, goal_x, goal_y, _cli_proc_name) when goal_x < 1 or goal_y < :a or goal_x > @table_top_x or goal_y > @table_top_y do
@@ -71,7 +72,35 @@ defmodule CLI.ToyRobotB do
     ###########################
     ## complete this funcion ##
     ###########################
+    goal_locs_length=length(goal_locs)
+    goal_traversing(robot,goal_locs,cli_proc_name,goal_locs_length)
+
+    send(:client_toyrobotA, {:move_A, "moving A"})
+
+    message= receive do
+              {:move_B, message} ->
+                message
+            end
+    IO.puts(message)
+    send(:client_toyrobotA, {:move_A, "moving A again"})
+
   end
+  def goal_traversing(robot,_goal_locs,_cli_proc_name,goal_locs_length) when goal_locs_length==0 do
+    {:ok,robot}
+  end
+  def goal_traversing(robot,goal_locs,cli_proc_name,goal_locs_length) do
+    goal_locs=receive do
+      {:move_B, goal_locs} ->
+        goal_locs
+    end
+    goal_locs_length=length(goal_locs)
+    [goal_x, goal_y]=select_nearest_goal(robot,goal_locs)
+    goal_locs=delete_selected_goal
+    send(:init_toyrobotB, {:move_B, goal_locs})
+    {:ok,robot}=go_to_goal(goal_x,goal_y)
+    goal_traversing(robot,goal_locs,cli_proc_name,goal_locs_length)
+  end
+
 
   @doc """
   Send Toy Robot's current status i.e. location (x, y) and facing

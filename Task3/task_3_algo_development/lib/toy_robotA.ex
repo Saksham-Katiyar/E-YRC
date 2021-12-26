@@ -55,6 +55,7 @@ defmodule CLI.ToyRobotA do
     ###########################
     ## complete this funcion ##
     ###########################
+    place(x, y, facing)
   end
 
   def stop(_robot, goal_x, goal_y, _cli_proc_name) when goal_x < 1 or goal_y < :a or goal_x > @table_top_x or goal_y > @table_top_y do
@@ -71,6 +72,50 @@ defmodule CLI.ToyRobotA do
     ###########################
     ## complete this funcion ##
     ###########################
+    Process.register(self(), :client_toyrobotA)
+    goal_locs_length=length(goal_locs)
+    goal_traversing(robot,goal_locs,cli_proc_name,goal_locs_length)
+
+    # listen_first()
+    receive do
+      {:move_A, message} ->
+        IO.puts(message)
+    end
+    # listen_from_server()
+    send(:init_toyrobotB, {:move_B, "moving B"})
+
+    receive do
+      {:move_A, message} ->
+        IO.puts("2")
+        IO.puts(message)
+    end
+  end
+  def goal_traversing(robot,_goal_locs,_cli_proc_name,goal_locs_length) when goal_locs_length==0 do
+    {:ok,robot}
+  end
+  def goal_traversing(robot,goal_locs,cli_proc_name,goal_locs_length) do
+    index=0
+    min=abs(Enum.at(Enum.at(goal_locs,0),0)-x)+abs(@robot_map_y_atom_to_num[Enum.at(Enum.at(li,0),1)]-@robot_map_y_atom_to_num[y])
+    {goal_x, goal_y,goal_index}=select_nearest_goal(robot,goal_locs,goal_locs_length,index+1,min)
+    goal_locs=List.delete_at(goal_locs,goal_index)
+    send(:init_toyrobotB, {:move_B, goal_locs})
+    {:ok,robot}=go_to_goal(goal_x,goal_y)
+    goal_locs=receive do
+              {:move_B, goal_locs} ->
+                goal_locs
+            end
+    goal_locs_length=length(goal_locs)
+    goal_traversing(robot,goal_locs,cli_proc_name,goal_locs_length)
+  end
+
+  def select_nearest_goal(%ToyRobot.Position{x: _x, y: _y, facing: _facing} = robot,goal_locs,goal_locs_length,index,min) do
+    here_min=abs(Enum.at(Enum.at(goal_locs,index),0)-x)+abs(@robot_map_y_atom_to_num[Enum.at(Enum.at(goal_locs,index),1)]-@robot_map_y_atom_to_num[y])
+    min=if here_min<min do
+          here_min
+        else
+          min
+        end
+    select_nearest_goal(robot,goal_locs,goal_locs_length,index+1,min)
   end
 
   @doc """
