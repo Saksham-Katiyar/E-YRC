@@ -73,16 +73,20 @@ defmodule CLI.ToyRobotB do
     ## complete this funcion ##
     ###########################
 
-    # closest = closest_goal(robot, goal_locs)
+    self_pid = self()
+    pid=spawn(fn -> loop(self_pid) end)
+    Process.register(pid, :client_toyrobotB)
 
-    send(:client_toyrobotA, {:move_A, "moving A"})
+    closest_to_B = closest_goal(robot, goal_locs) # returns ["4", "d"]
 
-    receive do
-      {:move_B, message} ->
-        IO.puts(message)
-    end
+    send(:client_toyrobotA, {:move_A, robot, goal_locs, closest_to_B})
 
-    send(:client_toyrobotA, {:move_A, "moving A again"})
+    # receive do
+    #   {:move_B, message} ->
+    #     IO.puts(message)
+    # end
+
+    # send(:client_toyrobotA, {:move_A, "moving A again"})
 
     # pid = self()
     # IO.puts(Process.alive?(self()))
@@ -109,8 +113,52 @@ defmodule CLI.ToyRobotB do
     # IO.inspect(self())
   end
 
-  def closest_goal(%CLI.Position{x: x, y: y, facing: facing} = _robot, goal_locs) do
+  defp steps(%CLI.Position{x: x, y: y, facing: facing} = _robot, goal) do
+    start_x = x
+    start_y = Map.get(@robot_map_y_atom_to_num, y)
+    goal_x = String.to_integer(Enum.fetch!(goal, 0))
+    goal_y = Map.get(@robot_map_y_atom_to_num, String.to_atom(Enum.fetch!(goal, 1)))
+    diff_x = abs(goal_x - start_x)
+    diff_y = abs(goal_y - start_y)
+    n = diff_x + diff_y
+    n = cond do
+      goal_x > start_x ->
+        cond do
+          facing == :north or facing == :south ->
+            n+2
+          facing == :west ->
+            n+3
+        end
+      goal_x < start_x ->
+        cond do
+          facing == :north or facing == :south ->
+            n+2
+          facing == :east ->
+            n+3
+        end
+      goal_x == start_x ->
+        cond do
+          facing == :east or facing == :west ->
+            n+1
+          (goal_y > start_y and facing == :south) or (goal_y < start_y and facing == :north) ->
+            n+2
+        end
+    end
+    n
+  end
 
+  defp closest_goal(robot, goal_list) do
+    closest = Enum.min_by(goal_list, fn goal -> steps(robot, goal) end)   # return ["3", "c"]
+    closest
+  end
+
+  def loop(pid) do
+    receive do
+      {:obstacle_presence, is_obs_ahead} ->
+        send(pid, {:obstacle_presence, is_obs_ahead})
+        loop(pid)
+        # code
+    end
   end
 
 

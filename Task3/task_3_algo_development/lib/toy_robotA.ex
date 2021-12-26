@@ -74,42 +74,170 @@ defmodule CLI.ToyRobotA do
     ###########################
     Process.register(self(), :client_toyrobotA)
 
+    robotA = robot
+    closest_to_A = closest_goal(robotA, goal_locs)
+
+    receive do
+      {:move_A, robotB, goal_list, closest_to_B} ->
+        if closest_to_A == closest_to_B do
+          dist_A = distance(robotA, closest_to_A)
+          dist_B = distance(robotB, closest_to_B)
+          if dist_A > dist_B do
+            goal_list = goal_list -- closest_to_B
+            next_goal(robotA, goal_list, closest_to_B, cli_proc_name)
+          else
+            goal_x = String.to_integer(Enum.fetch!(closest_to_A, 0))
+            goal_y = Map.get(@robot_map_y_atom_to_num, String.to_atom(Enum.fetch!(closest_to_A, 1)))
+            traverse(robotA, goal_x, goal_y, goal_list--closest_to_A, cli_proc_name)
+          end
+        else
+          goal_list = goal_list -- closest_to_B
+          goal_list = goal_list -- closest_to_A
+          goal_x = String.to_integer(Enum.fetch!(closest_to_A, 0))
+          goal_y = Map.get(@robot_map_y_atom_to_num, String.to_atom(Enum.fetch!(closest_to_A, 1)))
+          traverse(robotA, goal_x, goal_y, goal_list, cli_proc_name)
+        end
+    end
+
+
     # listen_first()
-    receive do
-      {:move_A, message} ->
-        IO.puts(message)
-    end
-    # listen_from_server()
-    send(:init_toyrobotB, {:move_B, "moving B"})
+    # receive do
+    #   {:move_A, message} ->
+    #     IO.puts(message)
+    # end
+    # # listen_from_server()
+    # send(:init_toyrobotB, {:move_B, "moving B"})
 
-    receive do
-      {:move_A, message} ->
-        IO.puts(message)
-    end
-
-    # IO.inspect(self())
-    # IO.puts("abcd")
-    # IO.puts("abcd")
-    # IO.puts("abcd")
-    # IO.puts("abcd")
-    # IO.puts("abcd")
-    # IO.puts("abcd")
-    # IO.puts("abcd")
-    # IO.puts("abcd")
-    # IO.puts("abcd")
-    # IO.puts("abcd")
-    # IO.puts("abcd")
-    # IO.puts("abcd")
-    # IO.puts("abcd")
-    # IO.puts("abcd")
-    # IO.puts("abcd")
-    # IO.inspect(self())
-  end
-
-  def listen_first() do
-
+    # receive do
+    #   {:move_A, message} ->
+    #     IO.puts(message)
+    # end
 
   end
+
+  defp next_goal(robotA, goal_list, closest_to_B, cli_proc_name) when goal_list == [] and closest_to_B == [] do
+    _ = send_robot_status(robotA, cli_proc_name)
+    {:ok, robotA}
+  end
+
+  defp next_goal(robotA, goal_list, closest_to_B, cli_proc_name) when goal_list == [] and closest_to_B != [] do
+    _ = send_robot_status(robotA, cli_proc_name)
+    send(:init_toyrobotB, {:move_B, robotA, goal_list, []})
+  end
+
+  defp next_goal(robotA, goal_list, _closest_to_B, cli_proc_name) do
+    closest_to_A = closest_goal(robotA, goal_list)
+    goal_x = String.to_integer(Enum.fetch!(closest_to_A, 0))
+    goal_y = Map.get(@robot_map_y_atom_to_num, String.to_atom(Enum.fetch!(closest_to_A, 1)))
+    goal_list = goal_list -- closest_to_A
+    traverse(robotA, goal_x, goal_y, goal_list, cli_proc_name)
+  end
+
+  defp traverse(%CLI.Position{x: x, y: y, facing: _facing} = robot, goal_x, goal_y, _goal_list, cli_proc_name) when x == goal_x and y == goal_y do
+    _is_obstacle = send_robot_status(robot, cli_proc_name)
+    {:ok, robot}
+  end
+
+  defp traverse(%CLI.Position{x: x, y: y, facing: facing} = robot, goal_x, goal_y, goal_list, cli_proc_name) do
+    is_obstacle_0 = send_robot_status(robot, cli_proc_name)
+    send(:init_toyrobotB, {:move_B, robot, goal_list, [Integer.to_string(goal_x), Atom.to_string(goal_y)]})
+
+    robot = if is_obstacle_0 do
+      obstacle_sequence(robot, cli_proc_name)
+    else
+      x_direction = if goal_x > x do :east else :west end
+      y_direction = if goal_y > y do :north else :south end
+
+      receive do
+        {:move_A, _robotB, _new_goal_list, _closest_to_B} ->
+          cond do
+            x != goal_x and facing != x_direction -> right(robot)
+            x != goal_x and facing == x_direction -> move(robot)
+            y != goal_y and facing != y_direction -> left(robot)
+            y != goal_y and facing == y_direction -> move(robot)
+            true -> IO.puts("No matching clause: x:#{x} y:#{y} F:#{facing} X-dir:#{x_direction} Y-dir:#{y_direction} Goal_X:#{goal_x} Goal_Y:#{goal_y}")
+          end
+          # traverse(robot, goal_x, goal_y, new_goal_list, cli_proc_name)
+      end
+    end
+    traverse(robot, goal_x, goal_y, goal_list, cli_proc_name)
+  end
+
+  defp move_possible(%CLI.Position{x: x, y: y, facing: facing} = _robot) do
+    case {x, y, facing} do
+      {_x, :e, :north} -> false
+      {_x, :a, :south} -> false
+      {1, _y, :west} -> false
+      {5, _y, :east} -> false
+      _ -> true
+    end
+  end
+
+  defp left_until_free(robot, cli_proc_name) do
+    robot = left(robot)
+    if send_robot_status(robot, cli_proc_name) or !move_possible(robot) do
+      left_until_free(robot, cli_proc_name)
+    else
+      robot
+    end
+  end
+
+  defp obstacle_sequence(robot, cli_proc_name) do
+    robot = left_until_free(robot, cli_proc_name)
+    robot = move(robot)
+    _ = send_robot_status(robot, cli_proc_name)
+    robot = right(robot)
+    if !send_robot_status(robot, cli_proc_name) and move_possible(robot) do
+      move(robot)
+    else
+      obstacle_sequence(robot, cli_proc_name)
+    end
+  end
+
+
+  defp distance(%CLI.Position{x: x, y: y, facing: facing} = robot, goal) do
+    start_x = x
+    start_y = Map.get(@robot_map_y_atom_to_num, y)
+    goal_x = String.to_integer(Enum.fetch!(goal, 0))
+    goal_y = Map.get(@robot_map_y_atom_to_num, String.to_atom(Enum.fetch!(goal, 1)))
+    diff_x = abs(goal_x - start_x)
+    diff_y = abs(goal_y - start_y)
+    n = diff_x + diff_y
+    n = cond do
+      goal_x > start_x ->
+        cond do
+          facing == :north or facing == :south ->
+            n+2
+          facing == :west ->
+            n+3
+        end
+      goal_x < start_x ->
+        cond do
+          facing == :north or facing == :south ->
+            n+2
+          facing == :east ->
+            n+3
+        end
+      goal_x == start_x ->
+        cond do
+          facing == :east or facing == :west ->
+            n+1
+          (goal_y > start_y and facing == :south) or (goal_y < start_y and facing == :north) ->
+            n+2
+        end
+    end
+    n
+  end
+
+  defp closest_goal(robot, goal_list) do
+    if Enum.empty?(goal_list) do
+      []
+    else
+      closest = Enum.min_by(goal_list, fn goal -> distance(robot, goal) end)   # return ["3", "c"]
+      closest
+    end
+  end
+
 
   @doc """
   Send Toy Robot's current status i.e. location (x, y) and facing
