@@ -66,40 +66,123 @@ defmodule CLI.ToyRobotB do
   indication for the presence of obstacle ahead of robot's current position and facing.
   """
   def stop(robot, _goal_locs, cli_proc_name) do
-    kpid = spawn_link(fn -> listen_from_server() end)
-    Process.register(kpid, :client_toyrobotB)
+    pid = spawn_link(fn -> loop() end)
+    Process.register(pid, :client_toyrobotB)
+
     robotB = robot
 
-    pid = spawn_link(fn -> receive_robotA(robotB, cli_proc_name) end)
-    Process.register(pid, :robotStatus_B)
-    send(:robotStatus_A, {:robotB_status_first, robotB})
+    # kpid = spawn_link(fn -> loop_init() end)
+    # Process.register(kpid, :status_toyrobotB)
+
+    send(:client_toyrobotA, {:robotB_status_first, robotB})
+    goal_div_listB =  receive do
+                        {:goal_list_of_B, goal_div_listB} ->
+                          goal_div_listB
+                      end
+    #IO.inspect(goal_div_listB)
+    i = 0
+    move_goal(goal_div_listB, robotB, cli_proc_name, i)
+  end
+
+  def move_goal(goal_div_listB, robotB, cli_proc_name, i) when length(goal_div_listB) == i do
+    _is_obstacle = send_robot_status_true(robotB, cli_proc_name, 1)
+    move_goal(goal_div_listB, robotB, cli_proc_name, i)
+  end
+
+  def move_goal(goal_div_listB, robotB, cli_proc_name, i) when length(goal_div_listB) > i do
+    goal = Enum.fetch!(goal_div_listB, i)
+    goal_x = String.to_integer(Enum.fetch!(goal, 0))
+    goal_y = String.to_atom(Enum.fetch!(goal, 1))
+    robotB = traverse(robotB, goal_x, goal_y, cli_proc_name)
+    move_goal(goal_div_listB, robotB, cli_proc_name, i+1)
   end
 
 
-  # def move_goal(goal_div_listB, robotB, cli_proc_name, i) when length(goal_div_listB) <= i do
-  #   IO.inspect("all goals reached")
-  #   IO.inspect(robotB)
-  # end
+  defp traverse(%CLI.Position{x: x, y: y, facing: _facing} = robot, goal_x, goal_y, cli_proc_name) when x == goal_x and y == goal_y do
+    _is_obstacle = send_robot_status_true(robot, cli_proc_name, 0)
+    robot
+  end
 
-  # def move_goal(goal_div_listB, robotB, cli_proc_name, i) when length(goal_div_listB) > i do
-  #   goal = Enum.fetch!(goal_div_listB, i)
-  #   goal_x = String.to_integer(Enum.fetch!(goal, 0))
-  #   goal_y = Map.get(@robot_map_y_atom_to_num, String.to_atom(Enum.fetch!(goal, 1)))
-  #   robotB  = traverse(robotB, goal_x, goal_y, cli_proc_name)
-  #   move_goal(goal_div_listB, robotB, cli_proc_name, i+1)
-  # end
+  defp traverse(%CLI.Position{x: x, y: y, facing: facing} = robot, goal_x, goal_y, cli_proc_name) do
+    is_obstacle_0 = send_robot_status_true(robot, cli_proc_name, 0)
 
+    robot = if is_obstacle_0 do
+              obstacle_sequence(robot, cli_proc_name)
+            else
+              x_direction = if goal_x > x do :east else :west end
+              y_direction = if goal_y > y do :north else :south end
+              cond do
+                x != goal_x and facing != x_direction -> right(robot)
+                x != goal_x and facing == x_direction -> move_check(robot, cli_proc_name)
+                y != goal_y and facing != y_direction -> left(robot)
+                y != goal_y and facing == y_direction -> move_check(robot, cli_proc_name)
+                true -> IO.puts("No matching clause: x:#{x} y:#{y} F:#{facing} X-dir:#{x_direction} Y-dir:#{y_direction} Goal_X:#{goal_x} Goal_Y:#{goal_y}")
+              end
+            end
+    traverse(robot, goal_x, goal_y, cli_proc_name)
+  end
 
-  def receive_robotA(robotB, cli_proc_name) do
-    #send(:robotStatus_A, {:robotB_status, robotB})
-    receive do
-      {:robotA_status, robotA} ->
-        robotA
-      {:goal_list_of_B,  goal_div_listB} ->
-        IO.inspect("for robot 2")
-        IO.inspect(goal_div_listB)
+  defp move_possible(%CLI.Position{x: x, y: y, facing: facing} = _robot) do
+    case {x, y, facing} do
+      {_x, :e, :north} -> false
+      {_x, :a, :south} -> false
+      {1, _y, :west} -> false
+      {5, _y, :east} -> false
+      _ -> true
     end
   end
+
+  defp left_until_free(robot, cli_proc_name) do
+    robot = left(robot)
+    if send_robot_status_true(robot, cli_proc_name, 0) or !move_possible(robot) do
+      left_until_free(robot, cli_proc_name)
+    else
+      robot
+    end
+  end
+
+  defp obstacle_sequence(robot, cli_proc_name) do
+    robot = left_until_free(robot, cli_proc_name)
+    robot = move_check(robot, cli_proc_name)
+    _ = send_robot_status_true(robot, cli_proc_name, 0)
+    robot = right(robot)
+    if !send_robot_status_true(robot, cli_proc_name, 0) and move_possible(robot) do
+      move_check(robot, cli_proc_name)
+    else
+      obstacle_sequence(robot, cli_proc_name)
+    end
+  end
+
+  def move_check(robotB, cli_proc_name) do
+    next_robotB = move(robotB)
+    # receive do
+    #   {:check_collision, robotA} ->
+    #     if robotA == next_robotB do
+    #       _is_obs_ahead = send_robot_status_true(robotB, cli_proc_name, 0)
+    #       #move_check(robotB, cli_proc_name)
+    #     else
+    #       next_robotB
+    #     end
+    # end
+    next_robotB
+  end
+
+
+  def loop() do
+    receive do
+      {:obstacle_presence, is_obs_ahead} ->
+        send(:init_toyrobotB, {:obstacle_presence, is_obs_ahead})
+        loop()
+    end
+  end
+
+  # def loop_init() do
+  #   receive do
+  #     {:obstacle_presence, is_obs_ahead} ->
+  #       send(:init_toyrobotB, {:obstacle_presence, is_obs_ahead})
+  #       loop()
+  #   end
+  # end
 
   @doc """
   Send Toy Robot's current status i.e. location (x, y) and facing
@@ -107,9 +190,19 @@ defmodule CLI.ToyRobotB do
   Listen to the CLI Server and wait for the message indicating the presence of obstacle.
   The message with the format: '{:obstacle_presence, < true or false >}'.
   """
+
+  # t = 1 indicates all goals of robotB reached
+  def send_robot_status_true(%CLI.Position{x: x, y: y, facing: facing} = _robot, cli_proc_name, goal_statusB) do
+    send(:client_toyrobotA, {:robotB_status, goal_statusB})
+    receive do
+      {:robotA_status, _goal_statusA} ->
+        send(cli_proc_name, {:toyrobotB_status, x, y, facing})
+        listen_from_server()
+    end
+  end
+
   def send_robot_status(%CLI.Position{x: x, y: y, facing: facing} = _robot, cli_proc_name) do
     send(cli_proc_name, {:toyrobotB_status, x, y, facing})
-    # IO.puts("Sent by Toy Robot Client: #{x}, #{y}, #{facing}")
     listen_from_server()
   end
 
@@ -190,4 +283,5 @@ defmodule CLI.ToyRobotB do
   def failure do
     raise "Connection has been lost"
   end
+
 end
