@@ -86,12 +86,13 @@ defmodule CLI.ToyRobotA do
             goal_list = goal_list -- closest_to_B
             next_goal(robotA, goal_list, closest_to_B, cli_proc_name)
           else
+            goal_list = goal_list--closest_to_A
             goal_x = String.to_integer(Enum.fetch!(closest_to_A, 0))
             goal_y = Map.get(@robot_map_y_atom_to_num, String.to_atom(Enum.fetch!(closest_to_A, 1)))
-            traverse(robotA, goal_x, goal_y, goal_list--closest_to_A, cli_proc_name)
+            traverse(robotA, goal_x, goal_y, goal_list, cli_proc_name)
           end
         else
-          goal_list = goal_list -- closest_to_B
+          # goal_list = goal_list -- closest_to_B
           goal_list = goal_list -- closest_to_A
           goal_x = String.to_integer(Enum.fetch!(closest_to_A, 0))
           goal_y = Map.get(@robot_map_y_atom_to_num, String.to_atom(Enum.fetch!(closest_to_A, 1)))
