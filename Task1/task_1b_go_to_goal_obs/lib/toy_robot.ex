@@ -94,60 +94,68 @@ defmodule ToyRobot do
   def traverse(%ToyRobot.Position{x: x, y: y, facing: _facing} = robot, obs_map, goal_x, goal_y, cli_proc_name) do
     goal_index=@robot_map_y_atom_to_num[goal_y]*5+goal_x-6
     position_index=@robot_map_y_atom_to_num[y]*5+x-6
-    shortest_path=[position_index]
+    bfs_list=[position_index]
+    path_list=[-1]
     index=0
-    goal_position_index=Enum.at(shortest_path, index)
-    shortest_path=make_shortest_path(shortest_path,goal_index,index,obs_map,goal_position_index)
+    visited=List.duplicate(0,25)
+    visited=List.replace_at(visited,position_index,1)
+    goal_position_index=Enum.at(bfs_list, index)
+    shortest_path=make_shortest_path(bfs_list,goal_index,index,obs_map,goal_position_index,visited,path_list)
     {robot,obs_map}=move_on_shortest_path(robot,shortest_path, index, cli_proc_name, obs_map)
     traverse(robot,obs_map, goal_x, goal_y, cli_proc_name)
   end
-  def find_shortest_path(shortest_path,index,li) when index==0 do
-    li=List.insert_at(li, 0, Enum.at(shortest_path,index))
+  def find_shortest_path(bfs_list,index,li,path_list) when index==0 do
+    li=List.insert_at(li, 0, Enum.at(bfs_list,index))
     li
   end
-  def find_shortest_path(shortest_path,index,li) do
-    li=List.insert_at(li, 0, Enum.at(shortest_path,index))
-    find_shortest_path(shortest_path,trunc((index-1)/4),li)
+  def find_shortest_path(bfs_list,index,li,path_list) do
+    li=List.insert_at(li, 0, Enum.at(bfs_list,index))
+    find_shortest_path(bfs_list,Enum.at(path_list,index),li,path_list)
   end
-  def make_shortest_path(shortest_path,goal_index,index,_obs_map,goal_position_index) when goal_position_index==goal_index do
+  def make_shortest_path(bfs_list,goal_index,index,_obs_map,goal_position_index,visited,path_list) when goal_position_index==goal_index do
     li=[]
-    find_shortest_path(shortest_path,index,li)
+    find_shortest_path(bfs_list,index,li,path_list)
   end
-  def make_shortest_path(shortest_path,goal_index,index,obs_map, _goal_position_index) do
-    shortest_path=shortest_path++find_neighbour_indexes(Enum.at(shortest_path,index),obs_map)
-    goal_position_index=Enum.at(shortest_path, index+1)
-    make_shortest_path(shortest_path,goal_index,index+1,obs_map, goal_position_index)
+  def make_shortest_path(bfs_list,goal_index,index,obs_map, _goal_position_index,visited,path_list) do
+    neighbour_indexes=find_neighbour_indexes(Enum.at(bfs_list,index),obs_map,visited)
+    bfs_list=bfs_list++neighbour_indexes
+    path_list=path_list++List.duplicate(index,length(neighbour_indexes))
+    visited= update_visted(visited,neighbour_indexes,0,length(neighbour_indexes))
+    goal_position_index=Enum.at(bfs_list, index+1)
+    make_shortest_path(bfs_list,goal_index,index+1,obs_map, goal_position_index,visited,path_list)
   end
-  def find_neighbour_indexes(position_index,obs_map) do
+  def find_neighbour_indexes(position_index,obs_map,visited) do
     x=rem(position_index,5)+1
     y=trunc(position_index/5)+1
-    neighbour_indexes=if position_index==-1 do
-                        [-1,-1,-1,-1]
+    neighbour_indexes=[]
+    neighbour_indexes=if rem(position_index,5)!=0 and Enum.at(obs_map,(y*4+x-6))!=1 and Enum.at(visited,position_index-1)!=1 do
+                        List.insert_at(neighbour_indexes, 0, position_index-1)
                       else
-                        neighbour_indexes=[]
-                        neighbour_indexes=if position_index<20 and Enum.at(obs_map,(y*5+x+14))!=1 do
-                                            List.insert_at(neighbour_indexes, 0, position_index+5)
-                                          else
-                                            List.insert_at(neighbour_indexes, 0, -1)
-                                          end
-                        neighbour_indexes=if rem(position_index+1,5)!=0 and Enum.at(obs_map,(y*4+x-5))!=1 do
-                                            List.insert_at(neighbour_indexes, 1, position_index+1)
-                                          else
-                                            List.insert_at(neighbour_indexes, 1, -1)
-                                          end
-                        neighbour_indexes=if position_index>4 and Enum.at(obs_map,(y*5+x+9))!=1 do
-                                            List.insert_at(neighbour_indexes, 2, position_index-5)
-                                          else
-                                            List.insert_at(neighbour_indexes, 2, -1)
-                                          end
-                        neighbour_indexes=if rem(position_index,5)!=0 and Enum.at(obs_map,(y*4+x-6))!=1 do
-                                            List.insert_at(neighbour_indexes, 3, position_index-1)
-                                          else
-                                            List.insert_at(neighbour_indexes, 3, -1)
-                                          end
+                        neighbour_indexes
+                      end
+    neighbour_indexes=if position_index>4 and Enum.at(obs_map,(y*5+x+9))!=1 and Enum.at(visited,position_index-5)!=1 do
+                        List.insert_at(neighbour_indexes, 0, position_index-5)
+                      else
+                        neighbour_indexes
+                      end
+    neighbour_indexes=if rem(position_index+1,5)!=0 and Enum.at(obs_map,(y*4+x-5))!=1 and Enum.at(visited,position_index+1)!=1 do
+                        List.insert_at(neighbour_indexes, 0, position_index+1)
+                      else
+                        neighbour_indexes
+                      end
+    neighbour_indexes=if position_index<20 and Enum.at(obs_map,(y*5+x+14))!=1 and Enum.at(visited,position_index+5)!=1 do
+                        List.insert_at(neighbour_indexes, 0, position_index+5)
+                      else
                         neighbour_indexes
                       end
     neighbour_indexes
+  end
+  def update_visted(visited,neighbour_indexes,index,len) when index==len-1 or len==0 do
+    visited
+  end
+  def update_visted(visited,neighbour_indexes,index,len) do
+    visited=List.replace_at(visited,Enum.at(neighbour_indexes,index),1)
+    update_visted(visited,neighbour_indexes,index+1,len)
   end
   def move_on_shortest_path(%ToyRobot.Position{x: _x, y: _y, facing: _facing} = robot, shortest_path, index, _cli_proc_name, obs_map) when index==length(shortest_path)-1 do
     {robot,obs_map}
@@ -159,7 +167,6 @@ defmodule ToyRobot do
                     else
                       {robot,obs_map}
                     end
-
     {robot,obs_map}
   end
   def move_to_next_index(%ToyRobot.Position{x: _x, y: _y, facing: facing} = robot, index_0, index_1, cli_proc_name,obs_map) do
