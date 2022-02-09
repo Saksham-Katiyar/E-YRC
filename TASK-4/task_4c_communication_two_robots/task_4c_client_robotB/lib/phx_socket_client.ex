@@ -17,20 +17,11 @@ defmodule Task4CClientRobotB.PhoenixSocketClient do
   You may refer: https://github.com/mobileoverlord/phoenix_client/issues/29#issuecomment-660518498
   """
   def connect_server do
-    socket_opts = [
-      url: "ws://localhost:4000/socket/websocket"
-    ]
 
-    {:ok, socket} = PhoenixClient.Socket.start_link(socket_opts)
-    {:ok, _response, channel} = PhoenixClient.Channel.join(socket, "robot:status")
+    ###########################
+    ## complete this funcion ##
+    ###########################
 
-  end
-
-  defp wait_until_connected(socket) do
-    if !PhoenixClient.Socket.connected?(socket) do
-      Process.sleep(100)
-      wait_until_connected(socket)
-    end
   end
 
   @doc """
@@ -44,29 +35,6 @@ defmodule Task4CClientRobotB.PhoenixSocketClient do
   in this format: {:ok, < true OR false >}.
   Create a tuple of this format: '{:obstacle_presence, < true or false >}' as a return of this function.
   """
-  def send_robot_status_true(channel, %Task4CClientRobotB.Position{x: x, y: y, facing: facing} = robot, goal_statusB) when goal_statusB == 1 do
-    message = %{"client": "robot_B", "x": x, "y": y, "face": facing}
-    ## %{"client": "robot_A", "x": 1, "y": "f", "face": "north"}
-
-    ########### receive status of B and send status of A ################
-
-    {:ok, is_obs_ahead} = PhoenixClient.Channel.push(channel, "new_msg", message)
-    if goal_statusA == 0 do
-      send_robot_status_true(channel, robot, goal_statusB)
-    else
-      {:ok, robotB}
-    end
-  end
-
-  def send_robot_status_true(channel, %Task4CClientRobotB.Position{x: x, y: y, facing: facing} = robot, goal_statusB) when goal_statusB == 0 do
-
-    ############## supdate status of A on web ##############
-    message = %{"client": "robot_B", "x": x, "y": y, "face": facing}
-    ## %{"client": "robot_B", "x": 1, "y": "f", "face": "north"}
-    {:ok, is_obs_ahead} = PhoenixClient.Channel.push(channel, "new_msgB", message)
-    is_obs_ahead
-  end
-
   def send_robot_status(channel, %Task4CClientRobotB.Position{x: x, y: y, facing: facing} = _robot) do
 
     ###########################
