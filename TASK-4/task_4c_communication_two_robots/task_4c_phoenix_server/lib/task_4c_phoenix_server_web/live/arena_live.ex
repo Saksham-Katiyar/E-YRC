@@ -179,21 +179,6 @@ defmodule Task4CPhoenixServerWeb.ArenaLive do
     socket = assign(socket, :robotB_start, data["robotB_start"])
     Task4CPhoenixServerWeb.Endpoint.broadcast("timer:start", "start_timer", %{})
 
-    robotA_start = String.split(data["robotA_start"], ",")  # ["1", " b", " north"]
-    robotB_start = String.split(data["robotB_start"], ",")
-
-    plants_data = File.read!("Plant_Positions.csv")
-    list_plants = plants_data |> String.trim |> String.split("\n")
-    list_plants = Enum.map(list_plants, fn params -> String.split(params, ",") end)
-    list_plants = list_plants -- [["Sowing", "Weeding"]]
-
-    msg_start_goal = %{"robotA_start" => robotA_start, "robotB_start" => robotB_start, "goal_pos" => list_plants}
-    Task4CPhoenixServerWeb.Endpoint.broadcast("robot:update", "robot_start_goal", msg_start_goal)
-
-    #list_sowing = Enum.map(list_plants, fn params -> String.to_integer(hd(params)) end)
-    #list_weeding = Enum.map(list_plants, fn params -> String.to_integer(hd(tl(params))) end)
-
-
     #################################
     ## edit the function if needed ##
     #################################
@@ -240,35 +225,16 @@ defmodule Task4CPhoenixServerWeb.ArenaLive do
   Make sure to add a tuple of format: { < obstacle_x >, < obstacle_y > } to the MapSet object "obstacle_pos".
   These values msut be in pixels. You may handle these variables in separate callback functions as well.
   """
-
-  def handle_info(%{"client" => client_robot,"left" => left_value, "bottom" => bottom_value, "face" => face_value} = data, socket) do
-    if data["client"] == "robot_A" do
-      socket = assign(socket, :bottom_robotA, data["bottom"])
-      socket = assign(socket, :left_robotA, data["left"])
-      case data["face"] do
-        "north" -> assign(socket, :img_robotA, "robot_facing_north.png")
-        "south" -> assign(socket, :img_robotA, "robot_facing_south.png")
-        "east" -> assign(socket, :img_robotA, "robot_facing_east.png")
-        "west" -> assign(socket, :img_robotA, "robot_facing_west.png")
-      end
-    else
-      socket = assign(socket, :bottom_robotB, data["bottom"])
-      socket = assign(socket, :left_robotB, data["left"])
-      case data["face"] do
-        "north" -> assign(socket, :img_robotB, "robot_facing_north.png")
-        "south" -> assign(socket, :img_robotB, "robot_facing_south.png")
-        "east" -> assign(socket, :img_robotB, "robot_facing_east.png")
-        "west" -> assign(socket, :img_robotB, "robot_facing_west.png")
-      end
-    end
-    {:noreply, socket}
-  end
-
   def handle_info(data, socket) do
-    socket = assign(socket, :obstacle_pos, MapSet.put(socket.assigns.obstacle_pos, {data["left"], data["bottom"]}))
+
+    ###########################
+    ## complete this funcion ##
+    ###########################
+
     {:noreply, socket}
 
   end
+
   ######################################################
   ## You may create extra helper functions as needed  ##
   ## and update remaining assign variables.           ##

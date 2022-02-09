@@ -17,20 +17,11 @@ defmodule Task4CClientRobotA.PhoenixSocketClient do
   You may refer: https://github.com/mobileoverlord/phoenix_client/issues/29#issuecomment-660518498
   """
   def connect_server do
-    socket_opts = [
-      url: "ws://localhost:4000/socket/websocket"
-    ]
 
-    {:ok, socket} = PhoenixClient.Socket.start_link(socket_opts)
-    {:ok, _response, channel} = PhoenixClient.Channel.join(socket, "robot:status")
+    ###########################
+    ## complete this funcion ##
+    ###########################
 
-  end
-
-  defp wait_until_connected(socket) do
-    if !PhoenixClient.Socket.connected?(socket) do
-      Process.sleep(100)
-      wait_until_connected(socket)
-    end
   end
 
   @doc """
@@ -44,38 +35,13 @@ defmodule Task4CClientRobotA.PhoenixSocketClient do
   in this format: {:ok, < true OR false >}.
   Create a tuple of this format: '{:obstacle_presence, < true or false >}' as a return of this function.
   """
-  # t = 1 indicates all goals of robotB reached
-
-  def send_robot_status_true(channel, %Task4CClientRobotA.Position{x: x, y: y, facing: facing} = robot, goal_statusA) when goal_statusA == 1 do
-    message = %{"client": "robot_A", "x": x, "y": y, "face": facing}
-    ## %{"client": "robot_A", "x": 1, "y": "f", "face": "north"}
-
-    ########### receive status of B and send status of A ################
-
-    {:ok, is_obs_ahead} = PhoenixClient.Channel.push(channel, "new_msg", message)
-    if goal_statusB == 0 do
-      send_robot_status_true(channel, robot, goal_statusA)
-    else
-      {:ok, robotA}
-    end
-  end
-
-  def send_robot_status_true(channel, %Task4CClientRobotA.Position{x: x, y: y, facing: facing} = robot, goal_statusA) when goal_statusA == 0 do
-
-    ############## supdate status of A on web ##############
-    message = %{"client": "robot_A", "x": x, "y": y, "face": facing}
-    ## %{"client": "robot_A", "x": 1, "y": "f", "face": "north"}
-    {:ok, is_obs_ahead} = PhoenixClient.Channel.push(channel, "new_msg", message)
-    is_obs_ahead
-  end
-
   def send_robot_status(channel, %Task4CClientRobotA.Position{x: x, y: y, facing: facing} = _robot) do
-    message = %{"client": "robot_A", "x": x, "y": y, "face": facing}
-    ## %{"client": "robot_A", "x": 1, "y": "f", "face": "north"}
-    {:ok, is_obs_ahead} = PhoenixClient.Channel.push(channel, "new_msgA", message)
-    is_obs_ahead
-  end
 
+    ###########################
+    ## complete this funcion ##
+    ###########################
+
+  end
 
   ######################################################
   ## You may create extra helper functions as needed. ##

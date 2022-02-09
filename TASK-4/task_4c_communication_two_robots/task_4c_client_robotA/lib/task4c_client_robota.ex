@@ -59,98 +59,23 @@ defmodule Task4CClientRobotA do
   You may create extra helper functions as needed.
   """
   def main do
-    {:ok, _response, channel} = Task4CClientRobotA.PhoenixSocketClient.connect_server()
-    # take start and goal position here
-    x_loc = String.to_integer(Enum.fetch!(robotA_start, 0))
-    y_loc = Enum.fetch!(robotA_start, 1)
-    facing = Enum.fetch!(robotA_start, 2)
-    robot = %{x: x_loc, y: y_loc, facing: facing}
-    goal_locs = goal_div_listA
-    stop(robot, goal_locs, channel)
+
+    ###########################
+    ## complete this funcion ##
+    ###########################
+
   end
 
   @doc """
   Provide GOAL positions to the robot as given location of [(x1, y1),(x2, y2),..] and plan the path from START to these locations.
   Make a call to ToyRobot.PhoenixSocketClient.send_robot_status/2 to get the indication of obstacle presence ahead of the robot.
   """
-  def stop(robot, goal_locs, channel) do
-    i = 0
-    move_goal(goal_locs, robot, channel, i)
-  end
+  def stop(robot, goal_locs) do
 
-  def move_goal(goal_div_listA, robot, channel, i) when length(goal_div_listA) == i do
-    _is_obstacle = ToyRobot.PhoenixSocketClient.send_robot_status_true(channel, robot, 1)
-    {:ok, robot}
-  end
+    ###########################
+    ## complete this funcion ##
+    ###########################
 
-  def move_goal(goal_div_listA, robot, channel, i) when length(goal_div_listA) > i do
-    goal = Enum.fetch!(goal_div_listA, i)
-    goal_x = String.to_integer(Enum.fetch!(goal, 0))
-    goal_y = String.to_atom(Enum.fetch!(goal, 1))
-    robot = traverse(robot, goal_x, goal_y, channel)
-    move_goal(goal_div_listA, robot, channel, i+1)
-  end
-
-
-  defp traverse(%Task4CClientRobotA.Position{x: x, y: y, facing: facing} = robot, goal_x, goal_y, channel) when x == goal_x and y == goal_y do
-    _is_obstacle = ToyRobot.PhoenixSocketClient.send_robot_status_true(channel, robot, 0)
-    robot
-  end
-
-  defp traverse(%Task4CClientRobotA.Position{x: x, y: y, facing: facing} = robot, goal_x, goal_y, channel) do
-    is_obstacle_0 = ToyRobot.PhoenixSocketClient.send_robot_status_true(channel, robot, 0)
-
-    robot = if is_obstacle_0 do
-              obstacle_sequence(robot, channel)
-            else
-              x_direction = if goal_x > x do :east else :west end
-              y_direction = if goal_y > y do :north else :south end
-              cond do
-                x != goal_x and facing != x_direction -> right(robot)
-                x != goal_x and facing == x_direction -> move_check(robot)
-                y != goal_y and facing != y_direction -> left(robot)
-                y != goal_y and facing == y_direction -> move_check(robot)
-                true -> IO.puts("No matching clause: x:#{x} y:#{y} F:#{facing} X-dir:#{x_direction} Y-dir:#{y_direction} Goal_X:#{goal_x} Goal_Y:#{goal_y}")
-              end
-            end
-    traverse(robot, goal_x, goal_y, channel)
-  end
-
-  defp move_possible(%Task4CClientRobotA.Position{x: x, y: y, facing: facing} = _robot) do
-    case {x, y, facing} do
-      {_x, :e, :north} -> false
-      {_x, :a, :south} -> false
-      {1, _y, :west} -> false
-      {5, _y, :east} -> false
-      _ -> true
-    end
-  end
-
-  defp left_until_free(robot, channel) do
-    robot = left(robot)
-    if ToyRobot.PhoenixSocketClient.send_robot_status_true(channel, robot, 0) or !move_possible(robot) do
-      left_until_free(robot, channel)
-    else
-      robot
-    end
-  end
-
-  defp obstacle_sequence(robot, channel) do
-    robot = left_until_free(robot, channel)
-    robot = move_check(robot)
-    _ = ToyRobot.PhoenixSocketClient.send_robot_status_true(channel, robot, 0)
-    robot = right(robot)
-    if !ToyRobot.PhoenixSocketClient.send_robot_status_true(channel, robot, 0) and move_possible(robot) do
-      move_check(robot)
-    else
-      obstacle_sequence(robot, channel)
-    end
-  end
-
-  def move_check(robot) do
-    robot = move(robot)
-    #send(:init_toyrobotB, {:check_collision, robotA})
-    robot
   end
 
   @doc """
