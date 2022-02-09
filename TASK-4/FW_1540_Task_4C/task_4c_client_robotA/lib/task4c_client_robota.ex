@@ -61,13 +61,13 @@ defmodule Task4CClientRobotA do
 
   def main do
     {:ok, _response, channel} = Task4CClientRobotA.PhoenixSocketClient.connect_server()
-    pid = spawn_link(fn -> loop() end)
-    Process.register(pid, :init_toyrobotA)
+    pid = spawn_link(fn -> loop(channel) end)
+    Process.register(pid, :toyrobotA)
     #Process.register(self(), :init_toyrobotA)
 
   end
 
-  def start_robot(message) do
+  def start_robot(message, channel) do
     robotA_start = message["robotA_start"]
     goal_div_listA = message["goal_div_listA"]
     x_loc = String.to_integer(Enum.fetch!(robotA_start, 0))
@@ -78,10 +78,10 @@ defmodule Task4CClientRobotA do
     stop(robot, goal_locs, channel)
   end
 
-  def loop() do
+  def loop(channel) do
     receive do
       {:start_pos, message} ->
-      start_robot(message)
+      start_robot(message, channel)
     end
   end
   @doc """

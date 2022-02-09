@@ -22,6 +22,7 @@ defmodule Task4CClientRobotA.PhoenixSocketClient do
     ]
 
     {:ok, socket} = PhoenixClient.Socket.start_link(socket_opts)
+    wait_until_connected(socket)
     {:ok, _response, channel} = PhoenixClient.Channel.join(socket, "robot:status")
 
   end
@@ -76,7 +77,7 @@ defmodule Task4CClientRobotA.PhoenixSocketClient do
   end
 
   def loop(message) do
-    send(:init_toyrobotA, {:start_pos, message})
+    send(:toyrobotA, {:start_pos, message})
   end
   # def send_robot_status(channel, %Task4CClientRobotA.Position{x: x, y: y, facing: facing} = _robot) do
   #   message = %{"client": "robot_A", "x": x, "y": y, "face": facing}
