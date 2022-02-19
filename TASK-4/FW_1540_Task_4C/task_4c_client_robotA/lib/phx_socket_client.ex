@@ -23,8 +23,8 @@ defmodule Task4CClientRobotA.PhoenixSocketClient do
 
     {:ok, socket} = PhoenixClient.Socket.start_link(socket_opts)
     wait_until_connected(socket)
+    IO.inspect("connected to server")
     {:ok, _response, channel} = PhoenixClient.Channel.join(socket, "robot:status")
-
   end
 
   defp wait_until_connected(socket) do
@@ -61,22 +61,22 @@ defmodule Task4CClientRobotA.PhoenixSocketClient do
   end
 
   def send_robot_status(channel, %Task4CClientRobotA.Position{x: x, y: y, facing: facing} = robot, goal_statusA) when goal_statusA == 0 do
-
-    ############## update status of A on web ##############
     message = %{"client": "robot_A", "x": x, "y": y, "face": facing}
     ## %{"client": "robot_A", "x": 1, "y": "f", "face": "north"}
     {:ok, is_obs_ahead} = PhoenixClient.Channel.push(channel, "new_msg", message)
+    IO.inspect("#{is_obs_ahead}")
     is_obs_ahead
   end
 
   def handle_in("start_posA", message, socket) do
+    IO.inspect("handle in called waiting for msg from server")
     pid = spawn_link(fn -> loop(message) end)
     Process.register(pid, :client_toyrobotA)
-    IO.inspect(message)
     {:noreply, socket}
   end
 
   def loop(message) do
+    IO.inspect("loop called")
     send(:toyrobotA, {:start_pos, message})
   end
   # def send_robot_status(channel, %Task4CClientRobotA.Position{x: x, y: y, facing: facing} = _robot) do

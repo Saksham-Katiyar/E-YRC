@@ -7,11 +7,8 @@ defmodule Task4CPhoenixServerWeb.RobotChannel do
   Reply or Acknowledge with socket PID received from the Client.
   """
   def join("robot:status", _params, socket) do
-    IO.inspect("join 1called")
     Task4CPhoenixServerWeb.Endpoint.subscribe("robot:update")
-    #Task4CPhoenixServerWeb.Endpoint.subscribe("robot:status")
     #Task4CPhoenixServerWeb.Endpoint.subscribe("robot:start")
-    IO.inspect("join2 called")
     :ok = Phoenix.PubSub.subscribe(Task4CPhoenixServer.PubSub, "robot:start")
     IO.inspect("join called")
     {:ok, socket}
@@ -97,10 +94,10 @@ defmodule Task4CPhoenixServerWeb.RobotChannel do
   end
 
   def handle_info(%{event: "robot_start_goal", payload: msg_start_goal, topic: "robot:start"}, socket) do
-    #def handle_info(msg_start_goal, socket) do
-    %{"robotA_start" => robotA_start, "robotB_start" => robotB_start, "goal_pos" => list_plants} = msg_start_goal
-    IO.inspect("recived ddddddddddddddddddddddddddddddddddddddddddddddd")
-    #Phoenix.Channel.push(socket, "start_posA", messageA)
+    %{"robotA_start" => robotA_start, "robotB_start" => robotB_start, "goalA" => goal_div_listA, "goalB" => goal_div_listB} = msg_start_goal
+    robotA_list = %{"robotA_start" => robotA_start, "goal_div_listA" => goal_div_listA}
+    IO.inspect(msg_start_goal)
+    Phoenix.Channel.broadcast!(socket, "start_posA", robotA_list)
     #Phoenix.Channel.push(socket, "start_posB", messageB)
     {:noreply, socket}
   end

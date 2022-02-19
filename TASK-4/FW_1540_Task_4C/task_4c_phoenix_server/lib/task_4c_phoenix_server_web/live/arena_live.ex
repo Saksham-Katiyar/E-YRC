@@ -206,10 +206,10 @@ defmodule Task4CPhoenixServerWeb.ArenaLive do
     socket = assign(socket, :robotA_goals, goal_div_listA)
     socket = assign(socket, :robotB_goals, goal_div_listB)
 
-    messageA = %{"robotA_start" => robotA_start, "goal_div_listA" => goal_div_listA}
-    messageB = %{"robotB_start" => robotB_start, "goal_div_listB" => goal_div_listB}
+    #messageA = %{"robotA_start" => robotA_start, "goal_div_listA" => goal_div_listA}
+    #messageB = %{"robotB_start" => robotB_start, "goal_div_listB" => goal_div_listB}
     msg_start_goal = %{"robotA_start" => robotA_start, "robotB_start" => robotB_start, "goalA" => goal_div_listA, "goalB" => goal_div_listB}
-    #IO.inspect(msg_start_goal)
+  
     #:ok = Phoenix.PubSub.subscribe(Task4CPhoenixServer.PubSub, "robot:start")
     #:ok = Phoenix.PubSub.broadcast(Task4CPhoenixServer.PubSub, "robot:start", msg_start_goal)
 
