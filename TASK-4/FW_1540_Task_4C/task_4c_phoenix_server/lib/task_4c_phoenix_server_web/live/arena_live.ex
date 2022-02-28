@@ -209,12 +209,12 @@ defmodule Task4CPhoenixServerWeb.ArenaLive do
     #messageA = %{"robotA_start" => robotA_start, "goal_div_listA" => goal_div_listA}
     #messageB = %{"robotB_start" => robotB_start, "goal_div_listB" => goal_div_listB}
     msg_start_goal = %{"robotA_start" => robotA_start, "robotB_start" => robotB_start, "goalA" => goal_div_listA, "goalB" => goal_div_listB}
-  
+
     #:ok = Phoenix.PubSub.subscribe(Task4CPhoenixServer.PubSub, "robot:start")
     #:ok = Phoenix.PubSub.broadcast(Task4CPhoenixServer.PubSub, "robot:start", msg_start_goal)
-
+    IO.inspect("sending tp robot channel")
     Task4CPhoenixServerWeb.Endpoint.broadcast!("robot:start", "robot_start_goal", msg_start_goal)
-
+    IO.inspect("sending to robot channel")
     #list_sowing = Enum.map(list_plants, fn params -> String.to_integer(hd(params)) end)
     #list_weeding = Enum.map(list_plants, fn params -> String.to_integer(hd(tl(params))) end)
 
