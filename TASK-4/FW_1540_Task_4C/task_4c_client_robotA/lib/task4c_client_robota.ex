@@ -178,6 +178,52 @@ defmodule Task4CClientRobotA do
     robot
   end
 
+  def deposit(%Task4CClientRobotA.Position{x: x, y: y, facing: facing} = robot, channel) do
+    dist_x = 6 - x
+    dist_y = 6 - Map.get(@robot_map_y_atom_to_num, y)
+    robot = cond do
+      dist_x < dist_y ->
+        robot = depo_traverse(robot, 6, y, channel)
+        case robot.facing do
+          :north -> right(robot)
+          :south -> left(robot)
+          _ -> robot
+        end
+      true ->
+        robot = depo_traverse(robot, x, :f, channel)
+        case robot.facing do
+          :east -> left(robot)
+          :west -> right(robot)
+          _ -> robot
+        end
+    end
+    robot
+  end
+
+  defp depo_traverse(%Task4CClientRobotA.Position{x: x, y: y, facing: facing} = robot, goal_x, goal_y, channel) when x == 6 or y == :f do
+    _is_obstacle = Task4CClientRobotA.PhoenixSocketClient.send_robot_status(channel, robot, 0)
+    robot
+  end
+
+  defp depo_traverse(%Task4CClientRobotA.Position{x: x, y: y, facing: facing} = robot, goal_x, goal_y, channel) do
+    is_obstacle = Task4CClientRobotA.PhoenixSocketClient.send_robot_status(channel, robot, 0)
+
+    robot = if is_obstacle do
+              obstacle_sequence(robot, channel)
+            else
+              x_direction = if goal_x > x do :east else :west end
+              y_direction = if goal_y > y do :north else :south end
+              cond do
+                x != goal_x and facing != x_direction -> right(robot)
+                x != goal_x and facing == x_direction -> move_check(robot)
+                y != goal_y and facing != y_direction -> left(robot)
+                y != goal_y and facing == y_direction -> move_check(robot)
+                true -> IO.puts("No matching clause: x:#{x} y:#{y} F:#{facing} X-dir:#{x_direction} Y-dir:#{y_direction} Goal_X:#{goal_x} Goal_Y:#{goal_y}")
+              end
+            end
+    depo_traverse(robot, goal_x, goal_y, channel)
+  end
+
   @doc """
   Provides the report of the robot's current position
 
