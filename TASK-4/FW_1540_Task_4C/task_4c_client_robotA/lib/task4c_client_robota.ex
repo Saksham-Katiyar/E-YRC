@@ -61,13 +61,19 @@ defmodule Task4CClientRobotA do
 
   def main do
     {:ok, _response, channel} = Task4CClientRobotA.PhoenixSocketClient.connect_server()
-    pid = spawn_link(fn -> loop(channel) end)
-    Process.register(pid, :toyrobotA)
-    #Process.register(self(), :init_toyrobotA)
+    # pid = spawn_link(fn -> loop(channel) end)
+    # Process.register(pid, :toyrobotA)
+    # receive do
+    #   {:message_type, value} ->
+    #     value
+    # end
 
+    message =  Task4CClientRobotA.PhoenixSocketClient.receive_pos(channel)
+    #start_robot(message, channel)
   end
 
   def start_robot(message, channel) do
+    IO.inspect("robotA  started moving")
     robotA_start = message["robotA_start"]
     goal_div_listA = message["goal_div_listA"]
     x_loc = String.to_integer(Enum.fetch!(robotA_start, 0))
@@ -79,10 +85,14 @@ defmodule Task4CClientRobotA do
   end
 
   def loop(channel) do
-    receive do
-      {:start_pos, message} ->
-      start_robot(message, channel)
-    end
+    IO.inspect("loop recive msg")
+    message = receive do
+                {:start_pos, message} ->
+                  message
+              end
+    IO.inspect("loop msg received")
+    start_robot(message, channel)
+
   end
   @doc """
   Provide GOAL positions to the robot as given location of [(x1, y1),(x2, y2),..] and plan the path from START to these locations.

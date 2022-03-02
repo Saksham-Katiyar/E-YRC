@@ -1,19 +1,19 @@
 defmodule Task4CPhoenixServerWeb.RobotChannel do
   use Phoenix.Channel
-
+  # Mix.install([:global_variable])
+  # import GVA
   @doc """
   Handler function for any Client joining the channel with topic "robot:status".
   Subscribe to the topic named "robot:update" on the Phoenix Server using Endpoint.
   Reply or Acknowledge with socket PID received from the Client.
   """
+
   def join("robot:status", _params, socket) do
-    IO.inspect("join 1called")
     Task4CPhoenixServerWeb.Endpoint.subscribe("robot:update")
-    #Task4CPhoenixServerWeb.Endpoint.subscribe("robot:status")
     #Task4CPhoenixServerWeb.Endpoint.subscribe("robot:start")
-    IO.inspect("join2 called")
     :ok = Phoenix.PubSub.subscribe(Task4CPhoenixServer.PubSub, "robot:start")
     IO.inspect("join called")
+    :ets.new(:buckets_registry, [:named_table])
     {:ok, socket}
   end
 
@@ -96,12 +96,46 @@ defmodule Task4CPhoenixServerWeb.RobotChannel do
     {:reply, {:ok, is_obs_ahead}, socket}
   end
 
+  def handle_in("start_posA", message, socket) do
+    # pid = spawn_link(fn -> loop(message) end)
+    # Process.register(pid, :client_toyrobotA)
+    IO.inspect("sending to A")
+    # robotA_list = receive do
+    #   {:start_posA, robotA_list} ->
+    #     robotA_list
+    # end
+
+    robotA_list = :ets.lookup(:buckets_registry, "foo")
+    robotA_list = case robotA_list do
+                    [] ->
+                      Process.sleep(100)
+                      robotA_list
+                    _ ->
+                      robotA_list = Enum.fetch!(robotA_list, 0)
+                      elem(robotA_list, 1)
+                  end
+    {:reply, {:ok, robotA_list}, socket}
+  end
+
+  # def handle_info({:start_posA, robotA_list}) do
+  #   send(self(), {:start_posA, robotA_list})
+  #   #{:start_posA, %{"goal_div_listA" => [["2", "b"], ["4", "c"], ["5", "f"]], "robotA_start" => ["1", "b", "north"]}}
+  # end
+
   def handle_info(%{event: "robot_start_goal", payload: msg_start_goal, topic: "robot:start"}, socket) do
-    #def handle_info(msg_start_goal, socket) do
-    %{"robotA_start" => robotA_start, "robotB_start" => robotB_start, "goal_pos" => list_plants} = msg_start_goal
-    IO.inspect("recived ddddddddddddddddddddddddddddddddddddddddddddddd")
-    #Phoenix.Channel.push(socket, "start_posA", messageA)
-    #Phoenix.Channel.push(socket, "start_posB", messageB)
+    IO.inspect("message received from arena live")
+    %{"robotA_start" => robotA_start, "robotB_start" => robotB_start, "goalA" => goal_div_listA, "goalB" => goal_div_listB} = msg_start_goal
+    robotA_list = %{"robotA_start" => robotA_start, "goal_div_listA" => goal_div_listA}
+    # Phoenix.Channel.broadcast!(socket, "start_posA", robotA_list)
+    # Phoenix.Channel.push(socket, "start_posB", messageB)
+    # pid = spawn_link(fn -> loop(robotA_list) end)
+    # Process.register(pid, :server_handle_info)
+    # send(self(), {:start_posA, robotA_list})
+
+    :ets.insert(:buckets_registry, {"foo", robotA_list})
+    #:ets.lookup(table, "robotA_list")
+    # gnew :var
+    # gput :var, :robotA, robotA_list
     {:noreply, socket}
   end
 
