@@ -9,11 +9,18 @@ defmodule Task4CPhoenixServerWeb.RobotChannel do
   """
 
   def join("robot:status", _params, socket) do
-    Task4CPhoenixServerWeb.Endpoint.subscribe("robot:update")
-    #Task4CPhoenixServerWeb.Endpoint.subscribe("robot:start")
     :ok = Phoenix.PubSub.subscribe(Task4CPhoenixServer.PubSub, "robot:start")
     IO.inspect("join called")
     :ets.new(:buckets_registry, [:named_table])
+    IO.inspect("join called")
+    {:ok, socket}
+  end
+
+  def join("robot:statusB", _params, socket) do
+    # :ok = Phoenix.PubSub.subscribe(Task4CPhoenixServer.PubSub, "robot:start")
+    IO.inspect("join called")
+    # :ets.new(:buckets_registry, [:named_table])
+    IO.inspect("join called")
     {:ok, socket}
   end
 
@@ -57,13 +64,15 @@ defmodule Task4CPhoenixServerWeb.RobotChannel do
     client_robot = message["client"]
     msg_pos = %{"client" => client_robot,"left" => left_value, "bottom" => bottom_value, "face" => face_value}
 
-    Task4CPhoenixServerWeb.Endpoint.broadcast("robot:update", "robot_pos", msg_pos)
+    Task4CPhoenixServerWeb.Endpoint.broadcast("robot:update", "show_robot_pos", msg_pos)
 
     # determine the obstacle's presence in front of the robot and return the boolean value
     is_obs_ahead = Task4CPhoenixServerWeb.FindObstaclePresence.is_obstacle_ahead?(message["x"], message["y"], message["face"])
     if is_obs_ahead do
       obs_left_value =
         case face_value do
+          "north" ->
+            left_value
           "south" ->
             left_value
           "east" ->
@@ -97,15 +106,9 @@ defmodule Task4CPhoenixServerWeb.RobotChannel do
   end
 
   def handle_in("start_posA", message, socket) do
-    # pid = spawn_link(fn -> loop(message) end)
-    # Process.register(pid, :client_toyrobotA)
     IO.inspect("sending to A")
-    # robotA_list = receive do
-    #   {:start_posA, robotA_list} ->
-    #     robotA_list
-    # end
 
-    robotA_list = :ets.lookup(:buckets_registry, "foo")
+    robotA_list = :ets.lookup(:buckets_registry, "A")
     robotA_list = case robotA_list do
                     [] ->
                       Process.sleep(100)
@@ -117,25 +120,32 @@ defmodule Task4CPhoenixServerWeb.RobotChannel do
     {:reply, {:ok, robotA_list}, socket}
   end
 
-  # def handle_info({:start_posA, robotA_list}) do
-  #   send(self(), {:start_posA, robotA_list})
-  #   #{:start_posA, %{"goal_div_listA" => [["2", "b"], ["4", "c"], ["5", "f"]], "robotA_start" => ["1", "b", "north"]}}
-  # end
+  def handle_in("start_posB", message, socket) do
+    IO.inspect("sending to B")
+
+    robotB_list = :ets.lookup(:buckets_registry, "B")
+    robotB_list = case robotB_list do
+                    [] ->
+                      Process.sleep(100)
+                      robotB_list
+                    _ ->
+                      robotB_list = Enum.fetch!(robotB_list, 0)
+                      elem(robotB_list, 1)
+                  end
+    {:reply, {:ok, robotB_list}, socket}
+  end
 
   def handle_info(%{event: "robot_start_goal", payload: msg_start_goal, topic: "robot:start"}, socket) do
     IO.inspect("message received from arena live")
-    %{"robotA_start" => robotA_start, "robotB_start" => robotB_start, "goalA" => goal_div_listA, "goalB" => goal_div_listB} = msg_start_goal
-    robotA_list = %{"robotA_start" => robotA_start, "goal_div_listA" => goal_div_listA}
-    # Phoenix.Channel.broadcast!(socket, "start_posA", robotA_list)
-    # Phoenix.Channel.push(socket, "start_posB", messageB)
-    # pid = spawn_link(fn -> loop(robotA_list) end)
-    # Process.register(pid, :server_handle_info)
-    # send(self(), {:start_posA, robotA_list})
 
-    :ets.insert(:buckets_registry, {"foo", robotA_list})
-    #:ets.lookup(table, "robotA_list")
-    # gnew :var
-    # gput :var, :robotA, robotA_list
+    %{"robotA_start" => robotA_start, "robotB_start" => robotB_start, "goalA" => goal_div_listA,
+    "plant_locA" => exact_plant_locationA, "goalB" => goal_div_listB, "plant_locB" => exact_plant_locationB} = msg_start_goal
+
+    robotA_list = %{"robotA_start" => robotA_start, "goal_div_listA" => goal_div_listA, "plant_locA" => exact_plant_locationA}
+    robotB_list = %{"robotB_start" => robotB_start, "goal_div_listB" => goal_div_listB, "plant_locB" => exact_plant_locationB}
+
+    :ets.insert(:buckets_registry, {"A", robotA_list})
+    :ets.insert(:buckets_registry, {"B", robotB_list})
     {:noreply, socket}
   end
 
