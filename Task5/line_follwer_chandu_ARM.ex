@@ -49,16 +49,55 @@ defmodule FW_DEMO do
   @pwm_frequency 50
 
   @angle_front_a 30
-  @angle_back_a 160
+  @angle_back_a 170
   @angle_neutral_a 90
-  @angle_picking_b 27
+  @angle_picking_b 20
   @angle_placing_b 80
   @delay 1000
+
+  def orient() do
+    [a, b] = test_ir()
+    cond do
+      a==1 and b==0 ->
+        test_motion(2,[@left])
+        test_motion(5,[@stop])
+        orient()
+      a==0 and b==1 ->
+        test_motion(2,[@right])
+        test_motion(5,[@stop])
+        orient()
+      a==1 and b==1 -> IO.inspect("oreinted")
+    end
+  end
+
+
+  def go_to_plant(turn) do
+    test_motion(110, [turn])
+    test_motion(40,[@stop])
+    pwm_testing(90,90)
+    pwm_testing(90,90)
+    pwm_testing(90,90)
+    pwm_testing(90,90)
+    pwm_testing(0,0)
+    test_motion(200,[@stop])
+    orient()
+    sowing()
+  end
+
+
+
+
+
+
+
+
+
+
 
   def pwm_testing(duty1,duty2) do
     Logger.debug("Testing PWM for Motion control")
     motor_ref = Enum.map(@motor_pins, fn {_atom, pin_no} -> GPIO.open(pin_no, :output) end)
-    motor_action(motor_ref, @forward, 1)
+    motor_action(motor_ref, @backward, 1)
     [line_follow_motion(duty1,duty2)]
     #test_motion(40, [@stop])
   end
