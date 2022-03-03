@@ -57,7 +57,6 @@ defmodule Task4CClientRobotA.PhoenixSocketClient do
 
     send_robot_status(channel, robot, goal_statusA)
 
-
   end
 
   def send_robot_status(channel, %Task4CClientRobotA.Position{x: x, y: y, facing: facing} = robot, goal_statusA) when goal_statusA == 0 do
@@ -69,10 +68,7 @@ defmodule Task4CClientRobotA.PhoenixSocketClient do
   end
 
   def receive_pos(channel) do
-    IO.inspect("receive pos before")
     {:ok, message} = PhoenixClient.Channel.push(channel, "start_posA", %{})
-    #pid = spawn_link(fn -> loop(message) end)
-    #Process.register(pid, :client_toyrobotA)
     case message do
       [] ->
         IO.inspect("empty data received")
@@ -83,24 +79,5 @@ defmodule Task4CClientRobotA.PhoenixSocketClient do
         message
     end
   end
-
-  def loop(message) do
-    IO.inspect("loop called")
-    send(:toyrobotA, {:start_pos, message})
-  end
-
-  # def handle_in("start_posA", message, socket) do
-  #   IO.inspect("handle in called waiting for msg from server")
-  #   pid = spawn_link(fn -> loop(message) end)
-  #   Process.register(pid, :client_toyrobotA)
-  #   {:noreply, socket}
-  # end
-
-  # def send_robot_status(channel, %Task4CClientRobotA.Position{x: x, y: y, facing: facing} = _robot) do
-  #   message = %{"client": "robot_A", "x": x, "y": y, "face": facing}
-  #   ## %{"client": "robot_A", "x": 1, "y": "f", "face": "north"}
-  #   {:ok, is_obs_ahead} = PhoenixClient.Channel.push(channel, "new_msgA", message)
-  #   is_obs_ahead
-  # end
 
 end

@@ -22,7 +22,9 @@ defmodule Task4CClientRobotB.PhoenixSocketClient do
     ]
 
     {:ok, socket} = PhoenixClient.Socket.start_link(socket_opts)
-    {:ok, _response, channel} = PhoenixClient.Channel.join(socket, "robot:status")
+    wait_until_connected(socket)
+    IO.inspect("connected to server")
+    {:ok, _response, channel} = PhoenixClient.Channel.join(socket, "robot:statusB")
 
   end
 
@@ -44,7 +46,7 @@ defmodule Task4CClientRobotB.PhoenixSocketClient do
   in this format: {:ok, < true OR false >}.
   Create a tuple of this format: '{:obstacle_presence, < true or false >}' as a return of this function.
   """
-  def send_robot_status_true(channel, %Task4CClientRobotB.Position{x: x, y: y, facing: facing} = robot, goal_statusB) when goal_statusB == 1 do
+  def send_robot_status(channel, %Task4CClientRobotB.Position{x: x, y: y, facing: facing} = robot, goal_statusB) when goal_statusB == 1 do
     message = %{"client": "robot_B", "x": x, "y": y, "face": facing}
     ## %{"client": "robot_A", "x": 1, "y": "f", "face": "north"}
 
@@ -52,37 +54,29 @@ defmodule Task4CClientRobotB.PhoenixSocketClient do
 
     {:ok, is_obs_ahead} = PhoenixClient.Channel.push(channel, "new_msg", message)
 
-    send_robot_status_true(channel, robot, goal_statusB)
+    send_robot_status(channel, robot, goal_statusB)
 
   end
 
-  def send_robot_status_true(channel, %Task4CClientRobotB.Position{x: x, y: y, facing: facing} = robot, goal_statusB) when goal_statusB == 0 do
-
-    ############## update status of B on web ##############
+  def send_robot_status(channel, %Task4CClientRobotB.Position{x: x, y: y, facing: facing} = robot, goal_statusB) when goal_statusB == 0 do
     message = %{"client": "robot_B", "x": x, "y": y, "face": facing}
-    ## %{"client": "robot_B", "x": 1, "y": "f", "face": "north"}
+    ## %{"client": "robot_A", "x": 1, "y": "f", "face": "north"}
     {:ok, is_obs_ahead} = PhoenixClient.Channel.push(channel, "new_msg", message)
+    IO.inspect("#{is_obs_ahead}")
     is_obs_ahead
   end
 
-  # def send_robot_status(channel, %Task4CClientRobotB.Position{x: x, y: y, facing: facing} = _robot) do
-
-  #   ###########################
-  #   ## complete this funcion ##
-  #   ###########################
-
-  # end
-  def handle_in("start_posB", message, socket) do
-    pid = spawn_link(fn -> loop(message) end)
-    Process.register(pid, :client_toyrobotB)
-    {:noreply, socket}
+  def receive_pos(channel) do
+    {:ok, message} = PhoenixClient.Channel.push(channel, "start_posB", %{})
+    case message do
+      [] ->
+        IO.inspect("empty data received")
+        Process.sleep(100)
+        receive_pos(channel)
+      _ ->
+        IO.inspect("required data received")
+        message
+    end
   end
-
-  def loop(message) do
-    send(:init_toyrobotB, {:start_pos, message})
-  end
-  ######################################################
-  ## You may create extra helper functions as needed. ##
-  ######################################################
 
 end

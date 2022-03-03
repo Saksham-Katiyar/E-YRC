@@ -185,46 +185,79 @@ defmodule Task4CPhoenixServerWeb.ArenaLive do
 
     robotA_start = String.split(data["robotA_start"], ",")  # ["1", " b", " north"]
     robotB_start = String.split(data["robotB_start"], ",")
+    list_plants = receive_plant_location()
 
-    plants_data = File.read!("Plant_Positions.csv")
-    list_plants = plants_data |> String.trim |> String.split("\n")
-    list_plants = Enum.map(list_plants, fn params -> String.split(params, ",") end)
-    list_plants = list_plants -- [["Sowing", "Weeding"]]
-    ########### list plants need to be modified ##########
-    list_plants = [["2", "b"], ["4", "c"], ["5", "f"]]
+    ######### 22 --> 2,E ############3
+    ## list_plants = [["2", "b", "sowing"], ["4", "c", "weeding"], ["5", "f"], ["4", "d"], ["3", "e"]]
 
     robotA_start_loc = List.delete_at(robotA_start, 2)
     robotB_start_loc = List.delete_at(robotB_start, 2)
     goal_listA = shortest_path(robotA_start_loc, list_plants)    # modify list with nearest obstacle first
     goal_listB = shortest_path(robotB_start_loc, list_plants)    #  ["own_pos", "nearest_obs", "second_one".....]
+    IO.inspect(goal_listA)
+    IO.inspect(goal_listB)
     goal_div_listA = []
     goal_div_listB = []
     goal_div_list = goal_division(goal_listA, goal_listB, goal_div_listA, goal_div_listB)    # goals divided among A and B
+    IO.inspect(goal_div_list)
     goal_div_listA = Enum.fetch!(goal_div_list, 0)
-    goal_div_listB = Enum.fetch!(goal_div_list, 1)
+    goal_div_listB = Enum.fetch!(goal_div_list, 1)   #  22 -> 2, E wale nodes
+    # "goal_div_listA" => [["2", "b"], ["4", "c"], ["5", "f"]], "robotA_start" => ["1", "b", "north"]
+    # robotA_start_loc = ["3", "b"]
+
+    updated_plant_nodes = []
+    updated_destn_nodesA = decide_node(robotA_start_loc, goal_div_listA, updated_plant_nodes)  # choose node from 4
+    updated_destn_nodesB = decide_node(robotB_start_loc, goal_div_listB, updated_plant_nodes)
+
+    exact_plant_location = []
+    exact_plant_locationA = plant_location(goal_div_listA, exact_plant_location)
+    exact_plant_locationB = plant_location(goal_div_listB, exact_plant_location)
 
     socket = assign(socket, :robotA_goals, goal_div_listA)
     socket = assign(socket, :robotB_goals, goal_div_listB)
+    robotA_liveview = update_start_postion(robotA_start)
+    robotB_liveview = update_start_postion(robotB_start)
+    socket = update_robotA(robotA_liveview, socket)
+    socket = update_robotB(robotB_liveview, socket)
 
-    #messageA = %{"robotA_start" => robotA_start, "goal_div_listA" => goal_div_listA}
-    #messageB = %{"robotB_start" => robotB_start, "goal_div_listB" => goal_div_listB}
-    msg_start_goal = %{"robotA_start" => robotA_start, "robotB_start" => robotB_start, "goalA" => goal_div_listA, "goalB" => goal_div_listB}
+    msg_start_goal = %{"robotA_start" => robotA_start, "robotB_start" => robotB_start, "goalA" => goal_div_listA,
+     "plant_locA" => exact_plant_locationA, "goalB" => goal_div_listB, "plant_locB" => exact_plant_locationB}
 
-    #:ok = Phoenix.PubSub.subscribe(Task4CPhoenixServer.PubSub, "robot:start")
-    #:ok = Phoenix.PubSub.broadcast(Task4CPhoenixServer.PubSub, "robot:start", msg_start_goal)
-    IO.inspect("sending tp robot channel")
     Task4CPhoenixServerWeb.Endpoint.broadcast!("robot:start", "robot_start_goal", msg_start_goal)
-    IO.inspect("sending to robot channel")
-    #list_sowing = Enum.map(list_plants, fn params -> String.to_integer(hd(params)) end)
-    #list_weeding = Enum.map(list_plants, fn params -> String.to_integer(hd(tl(params))) end)
-
-
-    #################################
-    ## edit the function if needed ##
-    #################################
-
     {:noreply, socket}
+  end
 
+  def receive_plant_location() do
+    plants_data = File.read!("Plant_Positions.csv")
+    list_plants = plants_data |> String.trim |> String.split("\n")
+    list_plants = Enum.map(list_plants, fn params -> String.split(params, ",") end)
+    list_plants = list_plants -- [["Sowing", "Weeding"]]
+    goal_list_sow = Enum.map(list_plants, fn params ->
+        sow_n = String.to_integer(hd(params))
+        sow_x = Integer.to_string((rem (sow_n-1),5)+1)
+        sow_y = case div(sow_n-1, 5) do
+                    0 -> "a"
+                    1 -> "b"
+                    2 -> "c"
+                    3 -> "d"
+                    4 -> "e"
+                end
+        [sow_x, sow_y, "sowing"]
+        end)
+    goal_list_weed = Enum.map(list_plants, fn params ->
+        weed_n = String.to_integer(hd(tl(params)))
+        weed_x = Integer.to_string((rem (weed_n-1),5)+1)
+        weed_y = case div(weed_n-1, 5) do
+                    0 -> "a"
+                    1 -> "b"
+                    2 -> "c"
+                    3 -> "d"
+                    4 -> "e"
+                end
+        [weed_x, weed_y, "weeding"]
+        end)
+    list_plants = goal_list_sow ++ goal_list_weed
+    list_plants
   end
 
   @doc """
@@ -265,31 +298,71 @@ defmodule Task4CPhoenixServerWeb.ArenaLive do
   These values msut be in pixels. You may handle these variables in separate callback functions as well.
   """
 
-  def handle_info(%{"client" => client_robot,"left" => left_value, "bottom" => bottom_value, "face" => face_value} = data, socket) do
-    #%{"client" => client_robot,"left" => left_value, "bottom" => bottom_value, "face" => face_value} = data
-    if data["client"] == "robot_A" do
-      socket = assign(socket, :bottom_robotA, data["bottom"])
-      socket = assign(socket, :left_robotA, data["left"])
+  def handle_info(%{event: "show_robot_pos", payload: data, topic: "robot:update"}, socket) do
+    %{"client" => client_robot,"left" => left_value, "bottom" => bottom_value, "face" => face_value} = data
+    # IO.inspect("robot pos updating in arena live view")
+    # IO.inspect(data)
+    socket =  if data["client"] == "robot_A" do
+                update_robotA(data, socket)
+              else
+                update_robotB(data, socket)
+              end
+    {:noreply, socket}
+  end
+
+  def update_start_postion(message) do
+    #  "robotA_start" => ["1", "b", "north"]
+    left_value =
+      case Enum.fetch!(message, 0) do
+        "1" -> 0
+        "2" -> 150
+        "3" -> 300
+        "4" -> 450
+        "5" -> 600
+        "6" -> 750
+      end
+
+    bottom_value =
+      case Enum.fetch!(message, 1) do
+        "a" -> 0
+        "b" -> 150
+        "c" -> 300
+        "d" -> 450
+        "e" -> 600
+        "f" -> 750
+      end
+    face_value = Enum.fetch!(message, 2)
+    %{"left" => left_value, "bottom" => bottom_value, "face" => face_value}
+  end
+
+  def update_robotA(data, socket) do
+    socket = assign(socket, :bottom_robotA, data["bottom"])
+    socket = assign(socket, :left_robotA, data["left"])
+    socket =
       case data["face"] do
         "north" -> assign(socket, :img_robotA, "robot_facing_north.png")
         "south" -> assign(socket, :img_robotA, "robot_facing_south.png")
         "east" -> assign(socket, :img_robotA, "robot_facing_east.png")
         "west" -> assign(socket, :img_robotA, "robot_facing_west.png")
       end
-    else
-      socket = assign(socket, :bottom_robotB, data["bottom"])
-      socket = assign(socket, :left_robotB, data["left"])
+    socket
+  end
+
+  def update_robotB(data, socket) do
+    socket = assign(socket, :bottom_robotB, data["bottom"])
+    socket = assign(socket, :left_robotB, data["left"])
+    socket =
       case data["face"] do
         "north" -> assign(socket, :img_robotB, "robot_facing_north.png")
         "south" -> assign(socket, :img_robotB, "robot_facing_south.png")
         "east" -> assign(socket, :img_robotB, "robot_facing_east.png")
         "west" -> assign(socket, :img_robotB, "robot_facing_west.png")
       end
-    end
-    {:noreply, socket}
+    socket
   end
 
-  def handle_info(%{"obs" => is_obs_ahead, "left" => obs_left_value, "bottom" => obs_bottom_value, "face" => face_value} = data, socket) do
+  def handle_info(%{event: "obs_pos", payload: data, topic: "robot:update"}, socket) do
+    %{"obs" => is_obs_ahead, "left" => obs_left_value, "bottom" => obs_bottom_value, "face" => face_value} = data
     socket = assign(socket, :obstacle_pos, MapSet.put(socket.assigns.obstacle_pos, {data["left"], data["bottom"]}))
     {:noreply, socket}
 
@@ -300,12 +373,80 @@ defmodule Task4CPhoenixServerWeb.ArenaLive do
     {:noreply, socket}
   end
 
+  def plant_location([], exact_plant_location) do
+    exact_plant_location
+  end
+
+  def plant_location(goal_div_list, exact_plant_location) do
+    exact_plant_location = List.insert_at(exact_plant_location, 36, update_node(Enum.fetch!(goal_div_list, 0)))
+    goal_div_list = List.delete_at(goal_div_list, 0)
+    plant_location(goal_div_list, exact_plant_location)
+  end
+
+  def update_node(x) do
+    number =  case Enum.fetch!(x, 0) do
+                "1" -> "1.5"
+                "2" -> "2.5"
+                "3" -> "3.5"
+                "4" -> "4.5"
+                "5" -> "5.5"
+              end
+    alphabet =  case Enum.fetch!(x, 1) do
+                  "a" -> "1.5"
+                  "b" -> "2.5"
+                  "c" -> "3.5"
+                  "d" -> "4.5"
+                  "e" -> "5.5"
+                end
+    [number, alphabet, Enum.fetch!(x, 2)]
+  end
+
     # robot, goal_list -> new_list with nearest obstacle first
+    # list_plants = [["2", "b"], ["4", "c"], ["5", "f"]]  ------
+    # alphabet --> alphabet + 0.5  &  number --> number + 0.5
   def shortest_path(robotA_start, list_plants) do
     start = [Enum.fetch!(robotA_start, 0), Enum.fetch!(robotA_start, 1)]
     shortest_path = []
     shortest_path = List.insert_at(shortest_path, 0, start)
     closest_goal(start, list_plants, shortest_path)
+  end
+
+  # decide destination node corresponding to each plant location
+  # list_true_plants = [[["2", "e"], ["2", "f"], ["3", "e"], ["3", "f"], ["2.5", "5.5"]]]
+  #  plant nodes = [["4", "c"], ["4", "d"], ["3", "e"], ["5", "f"]]
+  def decide_node(_start, [], updated_plant_nodes) do
+    updated_plant_nodes
+  end
+
+  def decide_node(start, plant_nodes, updated_plant_nodes) do
+    stop = Enum.fetch!(plant_nodes, 0)
+    number = Enum.fetch!(stop, 0)
+    alphabet = Enum.fetch!(stop, 1)
+    around_nodes = [[number, alphabet], [next_number(number), alphabet], [number, next_alphabet(alphabet)], [next_number(number), next_alphabet(alphabet)]]
+    closest_node = Enum.min_by(around_nodes, fn node -> dist(start, node) end)   # return ["3", "c"]
+    updated_plant_nodes = List.insert_at(updated_plant_nodes, 36, closest_node)
+    plant_nodes = List.delete_at(plant_nodes, 0)
+    decide_node(stop, plant_nodes, updated_plant_nodes)
+  end
+
+  def next_number(number) do
+    case number do
+      "1" -> "2"
+      "2" -> "3"
+      "3" -> "4"
+      "4" -> "5"
+      "5" -> "6"
+    end
+  end
+
+  def next_alphabet(alphabet) do
+    case alphabet do
+      "a" -> "b"
+      "b" -> "c"
+      "c" -> "d"
+      "d" -> "e"
+      "e" -> "f"
+    end
   end
 
   # modify old_list -> new_list with nearest obstacle first
@@ -364,6 +505,12 @@ defmodule Task4CPhoenixServerWeb.ArenaLive do
   end
 
   def goal_division(goal_listA, goal_listB, goal_div_listA, goal_div_listB) when length(goal_listA) > 2 do
+    # IO.inspect(goal_listA)
+    # IO.inspect(goal_listB)
+    # IO.inspect(goal_div_listA)
+    # IO.inspect(goal_div_listB)
+    goal_listA = List.delete(goal_listA, Enum.fetch!(goal_listB, 1))
+
     if Enum.fetch!(goal_listA, 1) != Enum.fetch!(goal_listB, 1) do
       distA = dist(Enum.fetch!(goal_listA, 0), Enum.fetch!(goal_listA, 1))
       distB = dist(Enum.fetch!(goal_listB, 0), Enum.fetch!(goal_listB, 1))
@@ -373,6 +520,9 @@ defmodule Task4CPhoenixServerWeb.ArenaLive do
           goal_listB = List.delete_at(goal_listB, 0)
           goal_div_listA = List.insert_at(goal_div_listA, 36, Enum.fetch!(goal_listA, 0))
           goal_div_listB = List.insert_at(goal_div_listB, 36, Enum.fetch!(goal_listB, 0))
+          goal_listA = List.delete(goal_listA, Enum.fetch!(goal_listB, 0))
+          goal_listB = List.delete(goal_listB, Enum.fetch!(goal_listA, 0))
+
           goal_division(goal_listA, goal_listB, goal_div_listA, goal_div_listB)
         distA < distB ->
           update_listA(goal_listA, goal_listB, goal_div_listA, goal_div_listB)
@@ -437,6 +587,7 @@ defmodule Task4CPhoenixServerWeb.ArenaLive do
     goal_listB = List.delete(goal_listB, Enum.fetch!(goal_listA, 1))
     goal_listA = List.delete_at(goal_listA, 0)
     goal_div_listA = List.insert_at(goal_div_listA, 36, Enum.fetch!(goal_listA, 0))
+
     goal_division(goal_listA, goal_listB, goal_div_listA, goal_div_listB)
   end
 
@@ -444,6 +595,7 @@ defmodule Task4CPhoenixServerWeb.ArenaLive do
     goal_listA = List.delete(goal_listA, Enum.fetch!(goal_listB, 1))
     goal_listB = List.delete_at(goal_listB, 0)
     goal_div_listB = List.insert_at(goal_div_listB, 36, Enum.fetch!(goal_listB, 0))
+
     goal_division(goal_listA, goal_listB, goal_div_listA, goal_div_listB)
   end
   ######################################################

@@ -125,6 +125,9 @@ defmodule FW_DEMO do
     end
   end
 
+  def go_to_plant() do
+    
+  end
   # a - gripper , b - arm
   # give servo some time to rotate
   def sowing() do
