@@ -25,16 +25,34 @@ defmodule Task4CPhoenixServerWeb.ArenaLive do
     socket = assign(socket, :left_robotA, 0)
     socket = assign(socket, :robotA_start, "")
     socket = assign(socket, :robotA_goals, [])
+    socket = assign(socket, :robotA_action, "Not moving")
 
     socket = assign(socket, :img_robotB, "robot_facing_south.png")
     socket = assign(socket, :bottom_robotB, 750)
     socket = assign(socket, :left_robotB, 750)
     socket = assign(socket, :robotB_start, "")
     socket = assign(socket, :robotB_goals, [])
+    socket = assign(socket, :robotB_action, "Not moving")
 
     socket = assign(socket, :obstacle_pos, MapSet.new())
     socket = assign(socket, :timer_tick, 300)
 
+    :ets.new(:killing_times, [:named_table])
+    time_data = File.read!("Robots_handle.csv")
+    list_times = time_data |> String.trim |> String.split("\n")
+    list_times = Enum.map(list_times, fn params -> String.split(params, ",") end)
+    list_times = list_times -- [["Sr No", "Robot", "Kill Time", "Restart Time"]]
+    list_times = Enum.map(list_times, fn params -> List.delete_at(params, 0) end)
+    list_times = Enum.map(list_times, fn params ->
+      start = String.to_integer(Enum.fetch!(params, 1))
+      ending = String.to_integer(Enum.fetch!(params, 2))
+      [Enum.fetch!(params, 0), start, ending]
+    end)
+    :ets.insert(:killing_times, {"table", list_times})
+    start_times = Enum.map(list_times, fn params ->
+      start = Enum.fetch!(params, 1)
+    end)
+    :ets.insert(:killing_times, {"start", start_times})
     {:ok,socket}
 
   end
@@ -137,6 +155,20 @@ defmodule Task4CPhoenixServerWeb.ArenaLive do
               <%= for i <- @robotB_goals do %>
               <div><%= i %></div>
               <% end %>
+            </div>
+          </div>
+        </div>
+
+        <div class="position-card">
+          <div style="text-transform:uppercase;width:100%;font-weight:bold;text-align:center" > Current Actions </div>
+          <div style="display:flex;flex-flow:wrap;width:100%">
+            <div style="width:50%">
+              <label>Robot A</label>
+              <div> <%=@robotA_action%> </div>
+            </div>
+            <div  style="width:50%">
+              <label>Robot B</label>
+              <div> <%=@robotB_action%> </div>
             </div>
           </div>
         </div>
@@ -285,7 +317,19 @@ defmodule Task4CPhoenixServerWeb.ArenaLive do
 
     Logger.info("Timer tick: #{timer_data.time}")
     socket = assign(socket, :timer_tick, timer_data.time)
-
+    t = 300 - timer_data.time
+    if Enum.member?(elem(hd(:ets.lookup(:killing_times, "start")), 1), t) do
+      time_data = :ets.lookup(:killing_times, "table")
+      time_list = elem(hd(time_data), 1)
+      next_kill = Enum.fetch!(time_list, 1), 0)
+      time_list = time_list -- [next_kill]
+      :ets.insert(:killing_times, {"table", time_list})
+      start_times = Enum.map(times_list, fn params ->
+        start = Enum.fetch!(params, 1)
+      end)
+      :ets.insert(:killing_times, {"start", start_times})
+      Task4CPhoenixServerWeb.Endpoint.broadcast!("robot:kill", "robot_killed", next_time)
+    end
     {:noreply, socket}
   end
 
@@ -366,6 +410,16 @@ defmodule Task4CPhoenixServerWeb.ArenaLive do
     socket = assign(socket, :obstacle_pos, MapSet.put(socket.assigns.obstacle_pos, {data["left"], data["bottom"]}))
     {:noreply, socket}
 
+  end
+
+  def handle_info(%{event: "actionA", payload: data, topic: "robot:update"}, socket) do
+    socket = assign(socket, :robotA_action, data)
+    {:noreply, socket}
+  end
+
+  def handle_info(%{event: "actionB", payload: data, topic: "robot:update"}, socket) do
+    socket = assign(socket, :robotB_action, data)
+    {:noreply, socket}
   end
 
   def handle_in("start_posA", message, socket) do

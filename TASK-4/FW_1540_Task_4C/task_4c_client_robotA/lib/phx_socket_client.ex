@@ -80,4 +80,19 @@ defmodule Task4CClientRobotA.PhoenixSocketClient do
     end
   end
 
+  defp receive_killed(channel) do
+    {:ok, message} = PhoenixClient.Channel.push(channel, "killed_A", %{})
+    IO.inspect("message")
+    IO.inspect(message)
+    # case message do
+    #   [] ->
+    #     IO.inspect("empty killed data received")
+    #     Process.sleep(100)
+    #     receive_killed(channel)
+    #   _ ->
+    #     IO.inspect("required data received")
+    #     message
+    # end
+  end
+
 end

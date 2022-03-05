@@ -12,6 +12,8 @@ defmodule Task4CPhoenixServerWeb.RobotChannel do
     :ok = Phoenix.PubSub.subscribe(Task4CPhoenixServer.PubSub, "robot:start")
     IO.inspect("join called")
     :ets.new(:buckets_registry, [:named_table])
+    :ets.insert(:buckets_registry, {"A_killed", false})
+    :ets.insert(:buckets_registry, {"B_killed", false})
     IO.inspect("join called")
     {:ok, socket}
   end
@@ -135,6 +137,18 @@ defmodule Task4CPhoenixServerWeb.RobotChannel do
     {:reply, {:ok, robotB_list}, socket}
   end
 
+  def handle_in("killed_A", _message, socket) do
+    IO.inspect("sending killing data to A")
+    value = elem(hd(:ets.lookup(:buckets_registry, "A_killed")), 1)
+    {:reply, {:ok, value}, socket}
+  end
+
+  def handle_in("killed_B", _message, socket) do
+    IO.inspect("sending killing data to B")
+    value = elem(hd(:ets.lookup(:buckets_registry, "B_killed")), 1)
+    {:reply, {:ok, value}, socket}
+  end
+
   def handle_info(%{event: "robot_start_goal", payload: msg_start_goal, topic: "robot:start"}, socket) do
     IO.inspect("message received from arena live")
 
@@ -147,6 +161,16 @@ defmodule Task4CPhoenixServerWeb.RobotChannel do
     :ets.insert(:buckets_registry, {"A", robotA_list})
     :ets.insert(:buckets_registry, {"B", robotB_list})
     {:noreply, socket}
+  end
+
+  def handle_info(%{event: "robot_killed", payload: robot_time, topic: "robot:kill"}, socket) do
+    IO.puts("robot killed message received in server")
+
+    if Enum.fetch!(robot_time, 0) == "A" do
+      :ets.insert(:buckets_registry, {"A_killed", true})
+    else
+      :ets.insert(:buckets_registry, {"B_killed", false})
+    end
   end
 
 end
