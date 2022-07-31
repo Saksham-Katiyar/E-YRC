@@ -60,19 +60,9 @@ defmodule Task4CClientRobotA.PhoenixSocketClient do
   end
 
   def send_robot_status(channel, %Task4CClientRobotA.Position{x: x, y: y, facing: facing} = robot, goal_statusA) when goal_statusA == 0 do
+    message = %{"client": "robot_A", "x": x, "y": y, "face": facing}
     ## %{"client": "robot_A", "x": 1, "y": "f", "face": "north"}
-    # {:ok, is_obs_ahead} = PhoenixClient.Channel.push(channel, "event_msg", message)
-    ir_values = Task4CClientRobotA.test_ir()
-    is_obs_ahead =  case ir_values do
-                      [1, 1] ->
-                        message = %{"event_id": 1, "sender": "A", "x": x, "y": y, "face": facing}
-                        {:ok, obs} = PhoenixClient.Channel.push(channel, "event_msg", message)
-                        obs
-                      _ ->
-                        message = %{"event_id": 2, "sender": "A", "x": x, "y": y, "face": facing}
-                        {:ok, obs} = PhoenixClient.Channel.push(channel, "event_msg", message)
-                        obs
-                    end
+    {:ok, is_obs_ahead} = PhoenixClient.Channel.push(channel, "new_msg", message)
     IO.inspect("#{is_obs_ahead}")
     is_obs_ahead
   end

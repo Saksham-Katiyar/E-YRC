@@ -41,7 +41,7 @@ defmodule Task4CPhoenixServerWeb.RobotChannel do
 
   If an obstacle is present ahead of the robot, then broadcast the pixel location of the obstacle to be displayed on the Dashboard.
   """
-  def handle_in("event_msg", message, socket) do
+  def handle_in("new_msg", message, socket) do
     left_value =
       case message["x"] do
         1 -> 0
@@ -62,22 +62,13 @@ defmodule Task4CPhoenixServerWeb.RobotChannel do
         "f" -> 750
       end
     face_value = message["face"]
-    client_robot =  if message["sender"] == "A" do
-                      "robot_A"
-                    else
-                      "robot_B"
-                    end
-    # message = %{"event_id": 1, "sender": "A", "x": x, "y": y, "face": facing}
+    client_robot = message["client"]
     msg_pos = %{"client" => client_robot,"left" => left_value, "bottom" => bottom_value, "face" => face_value}
 
     Task4CPhoenixServerWeb.Endpoint.broadcast("robot:update", "show_robot_pos", msg_pos)
 
     # determine the obstacle's presence in front of the robot and return the boolean value
-    is_obs_ahead =   case message["event_id"] do
-                      1 -> false
-                      2 -> true
-                    end
-    # is_obs_ahead = Task4CPhoenixServerWeb.FindObstaclePresence.is_obstacle_ahead?(message["x"], message["y"], message["face"])
+    is_obs_ahead = Task4CPhoenixServerWeb.FindObstaclePresence.is_obstacle_ahead?(message["x"], message["y"], message["face"])
     if is_obs_ahead do
       obs_left_value =
         case face_value do

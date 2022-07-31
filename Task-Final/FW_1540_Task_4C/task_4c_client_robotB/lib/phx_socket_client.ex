@@ -1,4 +1,4 @@
-defmodule Task4CClientRobotA.PhoenixSocketClient do
+defmodule Task4CClientRobotB.PhoenixSocketClient do
 
   alias PhoenixClient.{Socket, Channel, Message}
 
@@ -24,7 +24,8 @@ defmodule Task4CClientRobotA.PhoenixSocketClient do
     {:ok, socket} = PhoenixClient.Socket.start_link(socket_opts)
     wait_until_connected(socket)
     IO.inspect("connected to server")
-    {:ok, _response, channel} = PhoenixClient.Channel.join(socket, "robot:status")
+    {:ok, _response, channel} = PhoenixClient.Channel.join(socket, "robot:statusB")
+
   end
 
   defp wait_until_connected(socket) do
@@ -45,40 +46,28 @@ defmodule Task4CClientRobotA.PhoenixSocketClient do
   in this format: {:ok, < true OR false >}.
   Create a tuple of this format: '{:obstacle_presence, < true or false >}' as a return of this function.
   """
-  # t = 1 indicates all goals of robotB reached
-
-  def send_robot_status(channel, %Task4CClientRobotA.Position{x: x, y: y, facing: facing} = robot, goal_statusA) when goal_statusA == 1 do
-    message = %{"client": "robot_A", "x": x, "y": y, "face": facing}
+  def send_robot_status(channel, %Task4CClientRobotB.Position{x: x, y: y, facing: facing} = robot, goal_statusB) when goal_statusB == 1 do
+    message = %{"client": "robot_B", "x": x, "y": y, "face": facing}
     ## %{"client": "robot_A", "x": 1, "y": "f", "face": "north"}
 
     ########### receive status of B and send status of A ################
 
     {:ok, is_obs_ahead} = PhoenixClient.Channel.push(channel, "new_msg", message)
 
-    send_robot_status(channel, robot, goal_statusA)
+    send_robot_status(channel, robot, goal_statusB)
 
   end
 
-  def send_robot_status(channel, %Task4CClientRobotA.Position{x: x, y: y, facing: facing} = robot, goal_statusA) when goal_statusA == 0 do
+  def send_robot_status(channel, %Task4CClientRobotB.Position{x: x, y: y, facing: facing} = robot, goal_statusB) when goal_statusB == 0 do
+    message = %{"client": "robot_B", "x": x, "y": y, "face": facing}
     ## %{"client": "robot_A", "x": 1, "y": "f", "face": "north"}
-    # {:ok, is_obs_ahead} = PhoenixClient.Channel.push(channel, "event_msg", message)
-    ir_values = Task4CClientRobotA.test_ir()
-    is_obs_ahead =  case ir_values do
-                      [1, 1] ->
-                        message = %{"event_id": 1, "sender": "A", "x": x, "y": y, "face": facing}
-                        {:ok, obs} = PhoenixClient.Channel.push(channel, "event_msg", message)
-                        obs
-                      _ ->
-                        message = %{"event_id": 2, "sender": "A", "x": x, "y": y, "face": facing}
-                        {:ok, obs} = PhoenixClient.Channel.push(channel, "event_msg", message)
-                        obs
-                    end
+    {:ok, is_obs_ahead} = PhoenixClient.Channel.push(channel, "new_msg", message)
     IO.inspect("#{is_obs_ahead}")
     is_obs_ahead
   end
 
   def receive_pos(channel) do
-    {:ok, message} = PhoenixClient.Channel.push(channel, "start_posA", %{})
+    {:ok, message} = PhoenixClient.Channel.push(channel, "start_posB", %{})
     case message do
       [] ->
         IO.inspect("empty data received")

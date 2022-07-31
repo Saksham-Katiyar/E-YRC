@@ -146,11 +146,11 @@ defmodule Task4CClientRobotA do
     IO.inspect(channel)
     robot = traverse(robot, goal_x, goal_y, channel)
     if Enum.fetch!(goal, 2) == "sowing" do
-      # go_node_to_plant()
+      go_node_to_plant()
       move_goal(goal_div_listA, robot, channel, i+1)
     else
       robot = deposit(robot, channel)
-
+      
       move_goal(goal_div_listA, robot, channel, i+1)
     end
     #move_goal(goal_div_listA, robot, channel, i+1)
@@ -322,7 +322,7 @@ defmodule Task4CClientRobotA do
   @doc """
   Rotates the robot to the right
   """
-  def right(%Task4CClientRobotA.Position{facing: facing} = robot) do
+  def right(%Task4CClientRobotA.Position{facing: facing} = robot)
     path = ["right"]
     line_follower(path)
     %Task4CClientRobotA.Position{robot | facing: @directions_to_the_right[facing]}
@@ -379,7 +379,7 @@ defmodule Task4CClientRobotA do
   Does not change the position of the robot.
   This function used as fallback if the robot cannot move outside the table
   """
-  def line_follower(path) do
+  def line_follower() do
     follow_line(path)
   end
 
@@ -516,7 +516,6 @@ defmodule Task4CClientRobotA do
     Logger.debug("Testing IR Proximity Sensors")
     ir_ref = Enum.map(@ir_pins, fn {_atom, pin_no} -> GPIO.open(pin_no, :input, pull_mode: :pullup) end)
     ir_values = Enum.map(ir_ref,fn {_, ref_no} -> GPIO.read(ref_no) end)
-    ir_values
   end
 
   def test_motion(sleep, motion_list) do
