@@ -1,6 +1,6 @@
 # Functional_Weeder_eYRC_2021-22
 
-![Poster]()
+![Poster](poster.png)
 
 ## Problem Statement
 Problem Statement: Multiple autonomous robots explore the arena, which is an abstraction of a farm,
